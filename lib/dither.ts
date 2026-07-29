@@ -10,21 +10,45 @@ export const ACEP_PALETTE: [number, number, number][] = [
   [255, 128, 0],
 ];
 
+// Couleurs telles que le panneau ACeP les affiche réellement (valeurs issues
+// de la bibliothèque Inky de Pimoroni). Le panneau est nettement plus terne
+// que les valeurs RGB pures envoyées au contrôleur.
+const MEASURED_PALETTE: [number, number, number][] = [
+  [57, 48, 57],
+  [255, 255, 255],
+  [58, 91, 70],
+  [61, 59, 94],
+  [156, 72, 75],
+  [208, 190, 71],
+  [177, 106, 73],
+];
+
+// 0 = distance sur les couleurs pures, 1 = distance sur les couleurs mesurées.
+// La distance se calcule dans cet espace mélangé pour compenser la fadeur du
+// panneau, mais le PNG contient toujours les valeurs pures de ACEP_PALETTE.
+const MEASURED_BLEND = 0.5;
+
+const COMPARISON_PALETTE: [number, number, number][] = ACEP_PALETTE.map(
+  ([r, g, b], i) => {
+    const [mr, mg, mb] = MEASURED_PALETTE[i];
+    return [
+      r + (mr - r) * MEASURED_BLEND,
+      g + (mg - g) * MEASURED_BLEND,
+      b + (mb - b) * MEASURED_BLEND,
+    ];
+  },
+);
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function findNearestPaletteColor(
-  r: number,
-  g: number,
-  b: number,
-): [number, number, number] {
-  let bestR = ACEP_PALETTE[0][0];
-  let bestG = ACEP_PALETTE[0][1];
-  let bestB = ACEP_PALETTE[0][2];
+function findNearestPaletteIndex(r: number, g: number, b: number): number {
+  let bestIndex = 0;
   let bestDistance = Number.POSITIVE_INFINITY;
 
-  for (const [pr, pg, pb] of ACEP_PALETTE) {
+  for (let i = 0; i < COMPARISON_PALETTE.length; i++) {
+    const [pr, pg, pb] = COMPARISON_PALETTE[i];
     const dr = r - pr;
     const dg = g - pg;
     const db = b - pb;
@@ -32,13 +56,11 @@ function findNearestPaletteColor(
 
     if (distance < bestDistance) {
       bestDistance = distance;
-      bestR = pr;
-      bestG = pg;
-      bestB = pb;
+      bestIndex = i;
     }
   }
 
-  return [bestR, bestG, bestB];
+  return bestIndex;
 }
 
 function pixelIndex(x: number, y: number, width: number, channel: number): number {
@@ -51,15 +73,18 @@ function addError(
   y: number,
   width: number,
   height: number,
-  channel: number,
-  amount: number,
+  errR: number,
+  errG: number,
+  errB: number,
 ): void {
   if (x < 0 || x >= width || y < 0 || y >= height) {
     return;
   }
 
-  const index = pixelIndex(x, y, width, channel);
-  pixels[index] += amount;
+  const index = pixelIndex(x, y, width, 0);
+  pixels[index] += errR;
+  pixels[index + 1] += errG;
+  pixels[index + 2] += errB;
 }
 
 // Controls how much of the quantization error is diffused to neighbours.
@@ -79,42 +104,37 @@ export async function ditherToACeP(
   }
 
   for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+    // Balayage serpentin : une ligne sur deux se parcourt de droite à gauche
+    // (kernel miroir), ce qui casse les motifs verticaux du Floyd-Steinberg.
+    const leftToRight = y % 2 === 0;
+    const dir = leftToRight ? 1 : -1;
+
+    for (let step = 0; step < width; step++) {
+      const x = leftToRight ? step : width - 1 - step;
       const baseIndex = pixelIndex(x, y, width, 0);
 
-      const currentR = pixels[baseIndex];
-      const currentG = pixels[baseIndex + 1];
-      const currentB = pixels[baseIndex + 2];
+      const oldR = clamp(pixels[baseIndex], 0, 255);
+      const oldG = clamp(pixels[baseIndex + 1], 0, 255);
+      const oldB = clamp(pixels[baseIndex + 2], 0, 255);
 
-      const oldR = clamp(currentR, 0, 255);
-      const oldG = clamp(currentG, 0, 255);
-      const oldB = clamp(currentB, 0, 255);
+      const paletteIndex = findNearestPaletteIndex(oldR, oldG, oldB);
+      const [outR, outG, outB] = ACEP_PALETTE[paletteIndex];
+      const [cmpR, cmpG, cmpB] = COMPARISON_PALETTE[paletteIndex];
 
-      const [newR, newG, newB] = findNearestPaletteColor(oldR, oldG, oldB);
+      pixels[baseIndex] = outR;
+      pixels[baseIndex + 1] = outG;
+      pixels[baseIndex + 2] = outB;
 
-      pixels[baseIndex] = newR;
-      pixels[baseIndex + 1] = newG;
-      pixels[baseIndex + 2] = newB;
+      // L'erreur se mesure contre la couleur perçue (palette mélangée), pas
+      // contre la valeur pure écrite dans le PNG.
+      const errR = (oldR - cmpR) * ERROR_DIFFUSION;
+      const errG = (oldG - cmpG) * ERROR_DIFFUSION;
+      const errB = (oldB - cmpB) * ERROR_DIFFUSION;
 
-      const errR = oldR - newR;
-      const errG = oldG - newG;
-      const errB = oldB - newB;
-
-      addError(pixels, x + 1, y, width, height, 0, errR * (7 / 16) * ERROR_DIFFUSION);
-      addError(pixels, x + 1, y, width, height, 1, errG * (7 / 16) * ERROR_DIFFUSION);
-      addError(pixels, x + 1, y, width, height, 2, errB * (7 / 16) * ERROR_DIFFUSION);
-
-      addError(pixels, x - 1, y + 1, width, height, 0, errR * (3 / 16) * ERROR_DIFFUSION);
-      addError(pixels, x - 1, y + 1, width, height, 1, errG * (3 / 16) * ERROR_DIFFUSION);
-      addError(pixels, x - 1, y + 1, width, height, 2, errB * (3 / 16) * ERROR_DIFFUSION);
-
-      addError(pixels, x, y + 1, width, height, 0, errR * (5 / 16) * ERROR_DIFFUSION);
-      addError(pixels, x, y + 1, width, height, 1, errG * (5 / 16) * ERROR_DIFFUSION);
-      addError(pixels, x, y + 1, width, height, 2, errB * (5 / 16) * ERROR_DIFFUSION);
-
-      addError(pixels, x + 1, y + 1, width, height, 0, errR * (1 / 16) * ERROR_DIFFUSION);
-      addError(pixels, x + 1, y + 1, width, height, 1, errG * (1 / 16) * ERROR_DIFFUSION);
-      addError(pixels, x + 1, y + 1, width, height, 2, errB * (1 / 16) * ERROR_DIFFUSION);
+      addError(pixels, x + dir, y, width, height, errR * (7 / 16), errG * (7 / 16), errB * (7 / 16));
+      addError(pixels, x - dir, y + 1, width, height, errR * (3 / 16), errG * (3 / 16), errB * (3 / 16));
+      addError(pixels, x, y + 1, width, height, errR * (5 / 16), errG * (5 / 16), errB * (5 / 16));
+      addError(pixels, x + dir, y + 1, width, height, errR * (1 / 16), errG * (1 / 16), errB * (1 / 16));
     }
   }
 

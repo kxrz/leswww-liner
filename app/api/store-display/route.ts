@@ -26,7 +26,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { data, info } = await sharp(imageBuffer)
     .rotate()
     .resize({ width: 800, height: 480, fit: "cover" })
-    .modulate({ brightness: 1.1, saturation: 2.0 })
+    // Boost léger seulement : la compensation de la fadeur du panneau se fait
+    // désormais via la palette mesurée dans lib/dither.ts.
+    .modulate({ brightness: 1.1, saturation: 1.3 })
     .blur(0.4)
     .raw()
     .toBuffer({ resolveWithObject: true });

@@ -4,10 +4,17 @@ import {
   type AppConfig,
   type RotationMode,
 } from "@/lib/config";
+import Image from "next/image";
 import { useEffect, useState } from "react";
+
+type FixedImageOption = {
+  fileBase: string;
+  url: string;
+};
 
 type Props = {
   config: AppConfig;
+  images: FixedImageOption[];
 };
 
 const INTERVAL_OPTIONS: AppConfig["intervalHours"][] = [1, 2, 4, 8, 24];
@@ -25,9 +32,13 @@ const MODE_OPTIONS = [
   { value: "calendar", label: "Calendrier", enabled: false },
 ] as const;
 
-export default function SettingsClient({ config }: Props) {
+export default function SettingsClient({ config, images }: Props) {
   const [rotation, setRotation] = useState<RotationMode>(config.rotation);
-  const [fixedImage, setFixedImage] = useState(config.fixedImage ?? "");
+  // Les anciennes configs stockaient un nom avec extension ; on normalise
+  // vers le fileBase pour que la sélection dans la grille corresponde.
+  const [fixedImage, setFixedImage] = useState(
+    (config.fixedImage ?? "").replace(/\.[^.]+$/, ""),
+  );
   const [intervalHours, setIntervalHours] = useState(config.intervalHours);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -126,13 +137,34 @@ export default function SettingsClient({ config }: Props) {
             ))}
           </div>
           {rotation === "fixed" ? (
-            <input
-              type="text"
-              value={fixedImage}
-              onChange={(event) => setFixedImage(event.target.value)}
-              placeholder="Nom du fichier (ex: photo.png)"
-              className="mt-3 w-full rounded-md border border-white/[0.07] bg-zinc-800 px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-zinc-600 transition-colors duration-150 focus:border-white/[0.13] focus:outline-none"
-            />
+            images.length === 0 ? (
+              <p className="mt-3 text-sm text-zinc-500">
+                Aucune image cadrée disponible.
+              </p>
+            ) : (
+              <div className="mt-3 grid grid-cols-3 gap-2 md:grid-cols-4">
+                {images.map((image) => (
+                  <button
+                    key={image.fileBase}
+                    type="button"
+                    onClick={() => setFixedImage(image.fileBase)}
+                    className={`relative aspect-[5/3] cursor-pointer overflow-hidden rounded-md border transition-colors duration-150 ${
+                      fixedImage === image.fileBase
+                        ? "border-white/60"
+                        : "border-white/[0.07] opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <Image
+                      src={image.url}
+                      alt={image.fileBase}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 33vw, 25vw"
+                    />
+                  </button>
+                ))}
+              </div>
+            )
           ) : null}
         </div>
 

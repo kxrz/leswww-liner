@@ -1,7 +1,11 @@
-import { ditherToACeP } from "@/lib/dither";
+import { getConfig } from "@/lib/config";
+import { PANELS } from "@/lib/panels";
+import { DEFAULT_RENDER, renderForPanel } from "@/lib/render";
+import { activePanel, getState } from "@/lib/state";
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import sharp from "sharp";
+
+export const dynamic = "force-dynamic";
 
 function baseNameWithoutExtension(fileName: string): string {
   const lastDot = fileName.lastIndexOf(".");
@@ -16,22 +20,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
   }
 
+  const [state, config] = await Promise.all([getState(), getConfig()]);
+  const panel = PANELS[activePanel(state)];
+
   const cropBlob = await put(`crops/${file.name}`, file, {
     access: "public",
     allowOverwrite: true,
   });
 
-  const imageBuffer = Buffer.from(await file.arrayBuffer());
-
-  const { data, info } = await sharp(imageBuffer)
-    .rotate()
-    .resize({ width: 800, height: 480, fit: "cover" })
-    .modulate({ brightness: 1.1, saturation: 2.0 })
-    .blur(0.4)
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const pngBuffer = await ditherToACeP(data, info.width, info.height);
+  const pngBuffer = await renderForPanel(
+    Buffer.from(await file.arrayBuffer()),
+    panel,
+    { ...DEFAULT_RENDER, saturation: config.renderSaturation },
+  );
 
   const baseName = baseNameWithoutExtension(file.name);
   const displayBlob = await put(`display/${baseName}.png`, pngBuffer, {
@@ -41,7 +42,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   });
 
   return NextResponse.json(
-    { cropUrl: cropBlob.url, displayUrl: displayBlob.url },
+    { cropUrl: cropBlob.url, displayUrl: displayBlob.url, panel: panel.id },
     { status: 200 },
   );
 }

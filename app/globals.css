@@ -1,27 +1,174 @@
 @import "tailwindcss";
 
 :root {
-  --surface: #111111;
-  --surface-raised: #1a1a1a;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-hover: rgba(255, 255, 255, 0.13);
-  --text-primary: #e8e8e8;
-  --text-secondary: #888888;
-  --text-muted: #444444;
-  --accent: #ffffff;
-  --background: var(--surface);
-  --foreground: var(--text-primary);
+  --bg: #ffffff;
+  --bg-muted: #f4f4f5;
+  --bg-subtle: #fafafa;
+  --fg: #09090b;
+  --fg-muted: #71717a;
+  --fg-faint: #a1a1aa;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --accent: #09090b;
+  --danger: #b91c1c;
+  --ok: #15803d;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-bg-muted: var(--bg-muted);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
 }
 
 body {
-  background: var(--surface);
-  color: var(--text-primary);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter,
+    Helvetica, Arial, sans-serif;
+  line-height: 1.65;
+  font-size: 15px;
+}
+
+@layer components {
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .sect-title {
+    font-size: 1.35em;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .sect-sub {
+    color: var(--fg-muted);
+    font-size: 0.94em;
+  }
+
+  .field-label {
+    font-size: 0.72em;
+    font-weight: 600;
+    color: var(--fg-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72em;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 999px;
+    line-height: 1.6;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .badge-solid {
+    background: var(--fg);
+    color: #fff;
+  }
+  .badge-secondary {
+    background: var(--bg-muted);
+    color: var(--fg);
+  }
+  .badge-outline {
+    background: transparent;
+    border-color: var(--border-strong);
+    color: var(--fg-muted);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-family: inherit;
+    font-size: 0.9em;
+    font-weight: 500;
+    padding: 9px 16px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+  .btn svg {
+    width: 15px;
+    height: 15px;
+    stroke: currentColor;
+    flex-shrink: 0;
+  }
+  .btn-primary {
+    background: var(--fg);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: #27272a;
+  }
+  .btn-ghost {
+    background: var(--bg);
+    border-color: var(--border);
+    color: var(--fg);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--bg-subtle);
+  }
+  .btn-danger {
+    background: var(--bg);
+    border-color: var(--border);
+    color: var(--danger);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+
+  .chip {
+    font-family: inherit;
+    font-size: 0.85em;
+    font-weight: 500;
+    padding: 6px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .chip:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    color: var(--fg);
+  }
+  .chip-active {
+    background: var(--fg);
+    border-color: var(--fg);
+    color: #fff;
+  }
+  .chip-active:hover {
+    color: #fff;
+  }
+  .chip:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 }

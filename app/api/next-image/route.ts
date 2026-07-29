@@ -1,39 +1,27 @@
-import { listDisplay } from "@/lib/blob";
 import { getConfig } from "@/lib/config";
+import { resolveCurrent } from "@/lib/current";
 import { NextResponse } from "next/server";
 
-export async function GET(): Promise<Response> {
-  const { blobs } = await listDisplay();
+export const dynamic = "force-dynamic";
 
-  if (blobs.length === 0) {
+export async function GET(request: Request): Promise<Response> {
+  const config = await getConfig();
+  const current = await resolveCurrent(config);
+
+  if (!current || !current.url) {
     return NextResponse.json(
-      { error: "No images available" },
+      { error: current?.problem ?? "No images available" },
       { status: 404 },
     );
   }
 
-  const config = await getConfig();
+  const etag = `"${current.revision}"`;
 
-  let index = 0;
-
-  if (config.rotation === "random") {
-    index = Math.floor(Math.random() * blobs.length);
-  } else if (config.rotation === "fixed") {
-    if (config.fixedImage) {
-      const foundIndex = blobs.findIndex((blob) =>
-        blob.pathname.includes(config.fixedImage as string),
-      );
-      index = foundIndex >= 0 ? foundIndex : 0;
-    }
-  } else {
-    index =
-      Math.floor(Date.now() / (config.intervalHours * 3600 * 1000)) %
-      blobs.length;
+  if (request.headers.get("if-none-match") === etag) {
+    return new Response(null, { status: 304, headers: { ETag: etag } });
   }
 
-  const selectedBlob = blobs[index];
-
-  const imageResponse = await fetch(selectedBlob.url);
+  const imageResponse = await fetch(current.url, { cache: "no-store" });
 
   if (!imageResponse.ok) {
     return NextResponse.json(
@@ -48,6 +36,8 @@ export async function GET(): Promise<Response> {
     headers: {
       "Content-Type": "image/png",
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      ETag: etag,
+      "X-Tekpi-Revision": current.revision,
     },
   });
 }

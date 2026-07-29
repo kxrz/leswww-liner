@@ -117,6 +117,12 @@ de 30 jours). Trois exceptions, dans cet ordre :
    sans navigateur ne peut pas suivre une redirection vers un formulaire ;
 3. `/api/album/refresh` avec le `Bearer CRON_SECRET` de Vercel.
 
+L'indexation est bloquée en trois endroits, sans configuration :
+`app/robots.ts`, l'en-tête `X-Robots-Tag` de `next.config.ts` (posé sur toutes
+les réponses, redirections comprises) et la balise `robots` de `app/layout.tsx`.
+`/robots.txt` doit rester dans `PUBLIC_PATHS`, sinon un moteur est redirigé
+vers `/login` et ne lit jamais la consigne.
+
 **Chaque protection est facultative et échoue en mode ouvert** : sans la
 variable correspondante, la route passe. Couper le cadre en silence à la
 première mise en production serait pire que l'absence de protection ; le

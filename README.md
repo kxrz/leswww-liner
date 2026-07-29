@@ -140,6 +140,12 @@ le cadre en silence à la première mise en production serait pire que l'absence
 de protection. Tant que `SITE_PASSWORD` n'est pas défini, le site reste public
 et l'onglet Écran affiche un avertissement bien visible.
 
+L'indexation, elle, est bloquée par défaut et sans rien à configurer :
+`robots.txt` (`app/robots.ts`), en-tête `X-Robots-Tag` sur toutes les réponses
+y compris la redirection vers `/login` (`next.config.ts`), et balise `robots`
+du document (`app/layout.tsx`). Trois consignes que les robots honnêtes
+respectent ; la protection réelle reste le mot de passe.
+
 ## Contraintes matérielles
 
 La palette est figée par le contrôleur : toute couleur hors palette est

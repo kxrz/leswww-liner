@@ -1,8 +1,12 @@
 import { AUTH_COOKIE, sessionToken } from "@/lib/auth";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Accessibles sans cookie : la page de connexion et son formulaire. */
-const PUBLIC_PATHS = ["/login", "/api/login"];
+/**
+ * Accessibles sans cookie : la page de connexion, son formulaire, et le
+ * robots.txt — un moteur redirigé vers /login ne lirait jamais la consigne
+ * de ne pas indexer.
+ */
+const PUBLIC_PATHS = ["/login", "/api/login", "/robots.txt"];
 
 /**
  * Routes que le Raspberry Pi doit joindre. Elles s'authentifient avec un jeton

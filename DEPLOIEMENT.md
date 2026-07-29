@@ -207,12 +207,30 @@ avant d'y ajouter des jetons, ce qui évite de chercher une panne à deux endroi
 
 ---
 
-## 6. Ce qui n'est volontairement pas fait
+## 6. Indexation
+
+Le site n'a aucune raison d'apparaître dans un moteur de recherche. Trois
+barrières, actives par défaut, rien à configurer :
+
+| Barrière | Fichier | Ce qu'elle couvre |
+|---|---|---|
+| `robots.txt` | `app/robots.ts` | Le robot qui explore le site depuis la racine |
+| En-tête `X-Robots-Tag` | `next.config.ts` | Le robot arrivé par un lien externe, sans passer par `robots.txt` |
+| Balise `<meta name="robots">` | `app/layout.tsx` | Le robot qui lit la page sans regarder les en-têtes |
+
+L'en-tête est posé sur **toutes** les réponses, y compris la redirection vers
+`/login` : un moteur tombant sur une page protégée reçoit quand même la
+consigne. Et `robots.txt` reste lisible sans mot de passe, sans quoi le moteur
+serait redirigé vers le formulaire et ne lirait jamais la consigne.
+
+Ces trois barrières sont des **consignes**, respectées par les robots honnêtes
+et ignorées par les autres. La seule protection réelle reste `SITE_PASSWORD`.
+
+---
+
+## 7. Ce qui n'est volontairement pas fait
 
 - **Pas de base de données.** Le Blob suffit largement au volume.
-- **Pas d'indexation bloquée.** Si tu laisses le site public, il pourrait finir
-  dans un moteur de recherche. Un `robots.txt` et un en-tête `X-Robots-Tag`
-  seraient à ajouter ; `SITE_PASSWORD` reste la vraie réponse.
 - **Pas de comptes utilisateurs.** Un mot de passe unique, partagé, convient à
   un objet posé dans un salon.
 - **Pas de boutons physiques.** L'écran est dans un cadre photo : les boutons

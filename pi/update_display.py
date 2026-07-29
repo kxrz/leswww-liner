@@ -21,6 +21,10 @@ import requests
 from PIL import Image
 
 BASE_URL = "https://tekpi-eink.vercel.app"
+
+# Doit correspondre à DEVICE_TOKEN côté Vercel. Laisser vide si le site n'est
+# pas protégé : le serveur laisse alors passer sans jeton.
+DEVICE_TOKEN = ""
 STATE_FILE = Path.home() / ".tekpi-state.json"
 LOG_FILE = Path.home() / "tekpi.log"
 TIMEOUT = 45
@@ -55,11 +59,16 @@ def now_seconds() -> float:
     return datetime.now().timestamp()
 
 
+def auth_headers() -> dict:
+    return {"X-Tekpi-Token": DEVICE_TOKEN} if DEVICE_TOKEN else {}
+
+
 def send_heartbeat(driver: str | None, revision: str | None,
                    refreshed: bool, error: str | None = None) -> None:
     try:
         requests.post(
             f"{BASE_URL}/api/heartbeat",
+            headers=auth_headers(),
             json={
                 "driver": driver,
                 "revision": revision,
@@ -79,6 +88,7 @@ def main() -> int:
     response = requests.get(
         f"{BASE_URL}/api/state",
         params={"revision": state.get("revision") or ""},
+        headers=auth_headers(),
         timeout=TIMEOUT,
     )
     response.raise_for_status()
@@ -95,7 +105,9 @@ def main() -> int:
             save_state(state)
         return 0
 
-    image_response = requests.get(f"{BASE_URL}/api/next-image", timeout=TIMEOUT)
+    image_response = requests.get(
+        f"{BASE_URL}/api/next-image", headers=auth_headers(), timeout=TIMEOUT
+    )
     image_response.raise_for_status()
     image = Image.open(BytesIO(image_response.content)).convert("RGB")
 

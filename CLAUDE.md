@@ -106,6 +106,22 @@ Pour tout écran composé (texte, aplats, pochette) :
   (`assets/fonts/`), déclarée dans `outputFileTracingIncludes`. Aucune
   dépendance aux polices de l'hôte.
 
+### Accès et jetons
+
+`middleware.ts` garde tout le site derrière `SITE_PASSWORD` (cookie `HttpOnly`
+de 30 jours). Trois exceptions, dans cet ordre :
+
+1. `/login` et `/api/login`, toujours ouverts ;
+2. les routes du Pi (`/api/state`, `/api/next-image`, `/api/heartbeat`), qui
+   acceptent l'en-tête `X-Tekpi-Token` comparé à `DEVICE_TOKEN` — un appareil
+   sans navigateur ne peut pas suivre une redirection vers un formulaire ;
+3. `/api/album/refresh` avec le `Bearer CRON_SECRET` de Vercel.
+
+**Chaque protection est facultative et échoue en mode ouvert** : sans la
+variable correspondante, la route passe. Couper le cadre en silence à la
+première mise en production serait pire que l'absence de protection ; le
+défaut de configuration est donc signalé dans l'interface, pas masqué.
+
 ### Performance Vercel (plan hobby)
 
 - Mémoire fonction : max ~256MB. Traiter l'image entièrement en mémoire est OK pour 800×480 (≈1.1MB raw).
@@ -128,6 +144,7 @@ app/
     store-display/route.ts ← POST, écrit crops/<base>.jpg + display/<base>.png dithé
     redither/route.ts      ← POST, recalcule un display/ après changement de dalle
     save-config/route.ts   ← POST, persiste la config validée
+    login/route.ts         ← POST mot de passe, DELETE déconnexion
     album/refresh/route.ts ← GET/POST, calcule et publie l'album du jour (cron)
 components/
   AppShell.tsx             ← "use client", navigation par onglets
@@ -139,7 +156,9 @@ components/
   ImageEditor.tsx          ← "use client", crop/rotate (cropperjs)
   Settings.tsx             ← server component, charge config + images
   SettingsClient.tsx       ← "use client", rotation/intervalle/délai de garde
+middleware.ts              ← porte d'entrée : cookie de session ou jeton d'appareil
 lib/
+  auth.ts                  ← empreinte du mot de passe, état de la protection
   panels.ts                ← dalles supportées, renderPalette(), détection driver
   blob.ts                  ← listOriginals(), listCrops(), listDisplay()
   config.ts                ← AppConfig, getConfig(), saveConfig() (JSON dans Blob)
@@ -180,7 +199,6 @@ Fichier `.env.local` à créer localement (jamais commité). Un `.env.local.exam
 ## Ce que Cursor NE doit PAS faire
 
 - Ne pas ajouter de base de données (Prisma, Supabase, etc.) — Vercel Blob suffit
-- Ne pas ajouter d'authentification dans un premier temps
 - Ne pas utiliser `sharp().png({ palette: true })` sans le dithering custom
 - Ne pas hardcoder le token Blob dans le code source
 - Ne pas ajouter de tests unitaires à ce stade

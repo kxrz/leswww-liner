@@ -141,9 +141,29 @@ export default function ScreenPanel() {
   }
 
   const { pi, current, next, nextChangeAt, staleRender, album, mode } = status;
+  const { authConfigured } = status;
 
   return (
     <div className="flex flex-col gap-4">
+      {!authConfigured ? (
+        <div className="card border-amber-300 bg-amber-50 p-5">
+          <div className="flex items-start gap-3">
+            <AlertIcon className="mt-0.5 h-5 w-5 flex-shrink-0 stroke-amber-700" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                Ce site est accessible à tout le monde
+              </p>
+              <p className="mt-1 text-sm text-amber-800">
+                Sans <code className="font-mono text-xs">SITE_PASSWORD</code>{" "}
+                dans les variables d&apos;environnement, n&apos;importe qui
+                connaissant l&apos;adresse peut envoyer une image sur ton mur ou
+                vider la galerie. Définis-le sur Vercel, puis redéploie.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {staleRender ? (
         <div className="card border-amber-300 bg-amber-50 p-5">
           <div className="flex items-start gap-3">

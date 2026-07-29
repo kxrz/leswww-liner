@@ -1,4 +1,5 @@
 import { getAlbumRender } from "@/lib/album";
+import { isAuthConfigured } from "@/lib/auth";
 import { listCrops, listDisplay } from "@/lib/blob";
 import { getConfig } from "@/lib/config";
 import { resolveCurrent } from "@/lib/current";
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
 
 export interface ScreenStatus {
   now: number;
+  /** Faux quand SITE_PASSWORD n'est pas défini : le site est alors public. */
+  authConfigured: boolean;
   mode: "gallery" | "album";
   imageCount: number;
   current: {
@@ -71,6 +74,7 @@ export async function GET(): Promise<NextResponse<ScreenStatus>> {
 
   return NextResponse.json({
     now,
+    authConfigured: isAuthConfigured(),
     mode: config.mode,
     imageCount: display.length,
     current: current

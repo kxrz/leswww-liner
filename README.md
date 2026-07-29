@@ -103,9 +103,8 @@ npm install
 npm run dev
 ```
 
-Créer un `.env.local` avec :
-
-Les variables d'environnement sont documentées dans `.env.local.example` :
+Créer un `.env.local`. Les variables sont documentées dans
+`.env.local.example` :
 `BLOB_READ_WRITE_TOKEN` suffit pour la galerie, `SPOTIFY_CLIENT_ID` et
 `SPOTIFY_CLIENT_SECRET` s'ajoutent pour le mode album.
 
@@ -122,6 +121,22 @@ Il mémorise la révision affichée dans `~/.tekpi-state.json` et n'allume la da
 que si le serveur annonce un changement. Il ne se signale pas à chaque sondage :
 seulement après un rafraîchissement, une erreur, ou toutes les dix minutes. Les
 erreurs sont journalisées dans `~/tekpi.log`.
+
+## Accès
+
+Le site pilote un objet physique posé chez toi : il n'a pas vocation à être
+ouvert. Définir `SITE_PASSWORD` active une porte d'entrée (cookie `HttpOnly`
+valable 30 jours, posé par `/api/login`, vérifié dans `middleware.ts`).
+
+Le Pi, lui, n'a pas de navigateur et ne peut pas suivre une redirection vers un
+formulaire : il s'authentifie avec un en-tête `X-Tekpi-Token` sur ses trois
+routes (`/api/state`, `/api/next-image`, `/api/heartbeat`), comparé à
+`DEVICE_TOKEN`. Le cron de Vercel utilise `CRON_SECRET`, qu'il fournit seul.
+
+**Les deux protections sont facultatives, et c'est un choix assumé** : couper
+le cadre en silence à la première mise en production serait pire que l'absence
+de protection. Tant que `SITE_PASSWORD` n'est pas défini, le site reste public
+et l'onglet Écran affiche un avertissement bien visible.
 
 ## Contraintes matérielles
 

@@ -10,22 +10,23 @@ export const ACEP_PALETTE: [number, number, number][] = [
   [255, 128, 0],
 ];
 
-// Couleurs telles que le panneau ACeP les affiche réellement (valeurs issues
-// de la bibliothèque Inky de Pimoroni). Le panneau est nettement plus terne
-// que les valeurs RGB pures envoyées au contrôleur.
+// Couleurs telles que le panneau ACeP 7.3" les affiche réellement :
+// SATURATED_PALETTE du driver inky_ac073tc1a.py de Pimoroni, même ordre
+// (noir, blanc, vert, bleu, rouge, jaune, orange).
 const MEASURED_PALETTE: [number, number, number][] = [
-  [57, 48, 57],
-  [255, 255, 255],
-  [58, 91, 70],
-  [61, 59, 94],
-  [156, 72, 75],
-  [208, 190, 71],
-  [177, 106, 73],
+  [0, 0, 0],
+  [217, 242, 255],
+  [3, 124, 76],
+  [27, 46, 198],
+  [245, 80, 34],
+  [255, 255, 68],
+  [239, 121, 44],
 ];
 
 // 0 = distance sur les couleurs pures, 1 = distance sur les couleurs mesurées.
-// La distance se calcule dans cet espace mélangé pour compenser la fadeur du
-// panneau, mais le PNG contient toujours les valeurs pures de ACEP_PALETTE.
+// 0.5 correspond au défaut `saturation=0.5` de set_image() chez Pimoroni.
+// La distance se calcule dans cet espace mélangé pour compenser le rendu réel
+// du panneau, mais le PNG contient toujours les valeurs pures de ACEP_PALETTE.
 const MEASURED_BLEND = 0.5;
 
 const COMPARISON_PALETTE: [number, number, number][] = ACEP_PALETTE.map(
@@ -144,6 +145,9 @@ export async function ditherToACeP(
     output[i] = Math.round(clamp(pixels[i], 0, 255));
   }
 
+  // Surtout pas de png({ palette: true }) ici : libimagequant altère les
+  // couleurs même avec dither: 0 et quality: 100 (vérifié : un rouge pur
+  // ressort en rgb(144,0,0)), or le panneau exige les valeurs exactes.
   return sharp(output, {
     raw: {
       width,

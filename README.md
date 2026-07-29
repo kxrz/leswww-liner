@@ -1,6 +1,6 @@
 # tekpi-eink
 
-Cadre photo connecté pour écran e-ink couleur **Pimoroni Inky Frame 7.3"** (PIM773, panneau ACeP 800×480, 7 couleurs).
+Cadre photo connecté pour écran e-ink couleur **Pimoroni Inky Impression 7.3"** (PIM773, panneau ACeP 800×480, 7 couleurs), piloté par un Raspberry Pi Zero 2 W.
 
 Deux moitiés qui ne se parlent que par une URL :
 
@@ -12,7 +12,7 @@ Deux moitiés qui ne se parlent que par une URL :
 1. **Upload** : la photo est compressée côté client (max 1800 px, JPEG), puis stockée dans Vercel Blob sous `originals/` avec un nom de base unique.
 2. **Cadrage** : un clic sur la vignette ouvre un éditeur (cropperjs, ratio 5:3, rotation). À la validation, `/api/store-display` écrit :
    - `crops/<base>.jpg` : la version cadrée affichée dans la galerie ;
-   - `display/<base>.png` : le PNG 800×480 **pré-dithé** vers la palette ACeP (Floyd-Steinberg serpentin, distance calculée sur les couleurs réellement affichées par le panneau, voir `lib/dither.ts`).
+   - `display/<base>.png` : le PNG 800×480 **pré-dithé** vers la palette ACeP (Floyd-Steinberg serpentin ; la distance de couleur est calculée contre un mélange 50/50 entre la palette pure et la `SATURATED_PALETTE` du driver Pimoroni `inky_ac073tc1a.py`, soit l'équivalent du `saturation=0.5` par défaut de `set_image()`, voir `lib/dither.ts`).
 3. **Affichage** : le Pi appelle `/api/next-image` (cron), qui choisit une image selon la configuration et renvoie le PNG prêt à afficher. Le Pi ne calcule rien.
 
 La configuration (ordre de rotation, intervalle, image épinglée) est persistée en JSON dans le Blob : pas de base de données.
@@ -44,7 +44,9 @@ Le script `pi/update_display.py` (dépendances : `requests`, `pillow`, `inky`) s
 0 * * * * python3 /home/pi/update_display.py
 ```
 
-Il mémorise l'ETag de la dernière image affichée dans `/home/pi/.tekpi_etag` et ne rafraîchit l'écran que si l'image a changé. Les erreurs sont journalisées dans `/home/pi/display_error.log`.
+Il mémorise l'ETag de la dernière image affichée dans `/home/pi/.tekpi_etag` et ne rafraîchit l'écran que si l'image a changé (un refresh ACeP dure ~40 s). Les erreurs sont journalisées dans `/home/pi/display_error.log`.
+
+Avant l'affichage, l'image est convertie en mode palette (« P ») dans l'ordre des index du contrôleur : `set_image()` l'utilise alors telle quelle, sans re-quantization ni re-dithering, et les pixels pré-dithés côté serveur arrivent intacts sur le panneau.
 
 ## Contraintes matérielles
 

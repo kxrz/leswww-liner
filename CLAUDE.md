@@ -2,7 +2,7 @@
 
 ## Projet
 
-Affichage dynamique sur écran e-ink couleur Pimoroni Inky Frame 7.3" (PIM773).
+Affichage dynamique sur écran e-ink couleur Pimoroni Inky Impression 7.3" (PIM773).
 Architecture : Next.js App Router déployé sur Vercel + script Python sur Raspberry Pi Zero 2 W.
 
 ## Stack

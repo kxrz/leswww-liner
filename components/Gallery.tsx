@@ -1,5 +1,5 @@
 import GalleryClient from "@/components/GalleryClient";
-import { listCrops, listDisplay, listOriginals } from "@/lib/blob";
+import { listCrops, listOriginals } from "@/lib/blob";
 import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 
@@ -22,23 +22,9 @@ async function deleteImageAction(formData: FormData): Promise<void> {
     return;
   }
 
-  const [{ blobs: crops }, { blobs: display }] = await Promise.all([
-    listCrops(),
-    listDisplay(),
-  ]);
-
-  const cropBlob = crops.find(
-    (b) => basenameWithoutExt(basename(b.pathname)) === fileBase,
-  );
-  const displayBlob = display.find(
-    (b) => basenameWithoutExt(basename(b.pathname)) === fileBase,
-  );
-
-  const urlsToDelete = [originalUrl, cropBlob?.url, displayBlob?.url].filter(
-    (u): u is string => typeof u === "string",
-  );
-
-  await del(urlsToDelete);
+  // Les chemins dérivés sont déterministes (store-display écrit toujours
+  // crops/<base>.jpg et display/<base>.png) et del() ignore les blobs absents.
+  await del([originalUrl, `crops/${fileBase}.jpg`, `display/${fileBase}.png`]);
   revalidatePath("/");
 }
 

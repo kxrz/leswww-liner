@@ -164,20 +164,27 @@ export async function refreshPlaylistCache(
 /** Catalogue en cache, sans appel réseau. */
 export async function cachedAlbums(
   playlistId: string,
-): Promise<PlaylistAlbum[] | null> {
+): Promise<{ albums: PlaylistAlbum[]; ageMs: number } | null> {
   const cached = await readCache();
-  return cached && cached.playlistId === playlistId ? cached.albums : null;
+
+  return cached && cached.playlistId === playlistId
+    ? { albums: cached.albums, ageMs: Date.now() - (cached.fetchedAt ?? 0) }
+    : null;
 }
 
 export async function albumOfTheDay(
   playlistId: string,
-  options: { refresh?: boolean; now?: Date } = {},
+  options: { refresh?: boolean; maxCacheAgeMs?: number; now?: Date } = {},
 ): Promise<{ album: AlbumOfTheDay; fromCache: boolean; warning?: string }> {
   const dayKey = parisDayKey(options.now);
+  const maxAge = options.maxCacheAgeMs ?? Number.POSITIVE_INFINITY;
 
-  let albums: PlaylistAlbum[] | null = options.refresh
-    ? null
-    : await cachedAlbums(playlistId);
+  const cached = options.refresh ? null : await cachedAlbums(playlistId);
+  // Un cache trop vieux est renouvelé même hors cron : sans ça, un album
+  // ajouté à la playlist pourrait n'apparaître jamais si la détection du
+  // cron venait à échouer.
+  let albums: PlaylistAlbum[] | null =
+    cached && cached.ageMs <= maxAge ? cached.albums : null;
   let fromCache = albums !== null;
   let warning: string | undefined;
 

@@ -180,13 +180,13 @@ Le matching entre les trois buckets se fait par nom de base sans extension
 (`originals/<base>.jpg` ↔ `crops/<base>.jpg` ↔ `display/<base>.png`) ; le nom
 de base est rendu unique à l'upload (slug + suffixe aléatoire).
 
-## Variables d'environnement requises
+## Variables d'environnement
 
-```
-BLOB_READ_WRITE_TOKEN=   # depuis Vercel Dashboard > Storage > Blob
-```
-
-Fichier `.env.local` à créer localement (jamais commité). Un `.env.local.example` documente les clés.
+`.env.local.example` liste les clés, **`DEPLOIEMENT.md` explique quoi ajouter,
+où et pourquoi**. Seule `BLOB_READ_WRITE_TOKEN` est indispensable ; les autres
+(`SITE_PASSWORD`, `DEVICE_TOKEN`, `SPOTIFY_*`, `CRON_SECRET`) activent une
+fonction ou une protection, et leur absence laisse le projet fonctionner en
+mode ouvert. Tenir ces trois fichiers cohérents en ajoutant une variable.
 
 ## Conventions de code
 

@@ -103,10 +103,12 @@ npm install
 npm run dev
 ```
 
-Créer un `.env.local`. Les variables sont documentées dans
-`.env.local.example` :
-`BLOB_READ_WRITE_TOKEN` suffit pour la galerie, `SPOTIFY_CLIENT_ID` et
-`SPOTIFY_CLIENT_SECRET` s'ajoutent pour le mode album.
+Créer un `.env.local` à partir de `.env.local.example`. Seul
+`BLOB_READ_WRITE_TOKEN` est nécessaire pour la galerie.
+
+**Mise en production, variables d'environnement et configuration du Pi :
+voir [DEPLOIEMENT.md](DEPLOIEMENT.md)**, qui détaille quoi ajouter, où et
+pourquoi.
 
 ## Côté Raspberry Pi
 

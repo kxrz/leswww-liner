@@ -23,8 +23,9 @@ export const maxDuration = 60;
 async function handle(request: Request): Promise<NextResponse> {
   const secret = process.env.CRON_SECRET;
   const auth = request.headers.get("authorization");
+  const signedByCron = Boolean(secret) && auth === `Bearer ${secret}`;
 
-  if (secret && auth !== `Bearer ${secret}`) {
+  if (secret && !signedByCron && !request.headers.get("cookie")) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
 
@@ -43,11 +44,15 @@ async function handle(request: Request): Promise<NextResponse> {
   const panel = PANELS[activePanel(state)];
 
   try {
-    // Le cron rafraîchit le catalogue ; le bouton du site se contente du cache
-    // pour rester rapide, sauf si le cache est vide.
-    const isCron = request.headers.get("user-agent")?.includes("vercel-cron");
+    // Le cron force le rafraîchissement du catalogue ; le bouton du site se
+    // contente du cache pour rester rapide, sauf s'il date de plus de 12 h.
+    const isCron =
+      signedByCron ||
+      Boolean(request.headers.get("user-agent")?.includes("vercel-cron"));
+
     const { album, fromCache, warning } = await albumOfTheDay(playlistId, {
-      refresh: Boolean(isCron),
+      refresh: isCron,
+      maxCacheAgeMs: 12 * 60 * 60 * 1000,
     });
 
     const png = await composeAlbum(album, panel, {

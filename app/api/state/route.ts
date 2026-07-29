@@ -1,7 +1,6 @@
-import { listDisplay } from "@/lib/blob";
 import { getConfig } from "@/lib/config";
+import { resolveCurrent } from "@/lib/current";
 import { activePanel, getState } from "@/lib/state";
-import { selectImage } from "@/lib/selection";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -14,16 +13,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
   const piRevision = url.searchParams.get("revision");
 
-  const [{ blobs }, config, state] = await Promise.all([
-    listDisplay(),
-    getConfig(),
-    getState(),
-  ]);
+  const [config, state] = await Promise.all([getConfig(), getState()]);
 
   const now = Date.now();
-  const selection = selectImage(blobs, config, now);
+  const selection = await resolveCurrent(config, now);
 
-  if (!selection) {
+  if (!selection || !selection.url) {
     return NextResponse.json({
       refresh: false,
       revision: null,

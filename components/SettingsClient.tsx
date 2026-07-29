@@ -1,6 +1,6 @@
 "use client";
 
-import { type AppConfig, type RotationMode } from "@/lib/config";
+import { type AppConfig, type DisplayMode, type RotationMode } from "@/lib/config";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
@@ -26,6 +26,15 @@ const SATURATION_OPTIONS: {
   { value: 1.3, label: "Vif" },
 ];
 
+const MODE_OPTIONS: { value: DisplayMode; label: string; hint: string }[] = [
+  { value: "gallery", label: "Galerie", hint: "Tes photos, en rotation." },
+  {
+    value: "album",
+    label: "Album du jour",
+    hint: "Un album tiré chaque jour d'une playlist Spotify publique.",
+  },
+];
+
 const ROTATION_OPTIONS: { value: RotationMode; label: string }[] = [
   { value: "sequential", label: "Séquentiel" },
   { value: "random", label: "Aléatoire" },
@@ -33,6 +42,10 @@ const ROTATION_OPTIONS: { value: RotationMode; label: string }[] = [
 ];
 
 export default function SettingsClient({ config, images }: Props) {
+  const [mode, setMode] = useState<DisplayMode>(config.mode);
+  const [spotifyPlaylist, setSpotifyPlaylist] = useState(
+    config.spotifyPlaylist ?? "",
+  );
   const [rotation, setRotation] = useState<RotationMode>(config.rotation);
   // Les anciennes configs stockaient un nom avec extension ; on normalise
   // vers le fileBase pour que la sélection dans la grille corresponde.
@@ -64,7 +77,8 @@ export default function SettingsClient({ config, images }: Props) {
     setError(null);
 
     const payload = {
-      mode: "gallery" as const,
+      mode,
+      spotifyPlaylist: spotifyPlaylist.trim() || null,
       rotation,
       fixedImage: rotation === "fixed" ? fixedImage || null : null,
       intervalHours,
@@ -97,6 +111,48 @@ export default function SettingsClient({ config, images }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="card p-6">
+        <p className="field-label">Ce que l&apos;écran affiche</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {MODE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setMode(option.value)}
+              className={`chip ${mode === option.value ? "chip-active" : ""}`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <p className="sect-sub mt-3">
+          {MODE_OPTIONS.find((o) => o.value === mode)?.hint}
+        </p>
+
+        {mode === "album" ? (
+          <div className="mt-4">
+            <label className="field-label" htmlFor="playlist">
+              Playlist Spotify publique
+            </label>
+            <input
+              id="playlist"
+              type="text"
+              value={spotifyPlaylist}
+              onChange={(event) => setSpotifyPlaylist(event.target.value)}
+              placeholder="https://open.spotify.com/playlist/…"
+              className="mt-2 w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm outline-none transition-colors focus:border-line-strong"
+            />
+            <p className="sect-sub mt-2">
+              Doit être une playlist <b>que tu as créée</b> et rendue publique.
+              Depuis novembre 2024, Spotify interdit aux nouvelles applications
+              de lire ses propres playlists éditoriales. L&apos;album change à
+              minuit, heure de Paris. Chaque album passe une fois par cycle et
+              jamais deux jours de suite.
+            </p>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="card p-6" hidden={mode !== "gallery"}>
         <p className="field-label">Ordre d&apos;affichage</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {ROTATION_OPTIONS.map((option) => (

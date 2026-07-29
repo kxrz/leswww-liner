@@ -38,6 +38,8 @@ export default function ScreenPanel() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [forcing, setForcing] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
+  const [albumError, setAlbumError] = useState<string | null>(null);
   const [regen, setRegen] = useState<{ done: number; total: number } | null>(
     null,
   );
@@ -89,6 +91,23 @@ export default function ScreenPanel() {
     }
   }
 
+  async function handleRebuildAlbum() {
+    setRebuilding(true);
+    setAlbumError(null);
+    try {
+      const response = await fetch("/api/album/refresh", { method: "POST" });
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error ?? "Échec du calcul.");
+      }
+      reload();
+    } catch (err) {
+      setAlbumError(err instanceof Error ? err.message : "Échec du calcul.");
+    } finally {
+      setRebuilding(false);
+    }
+  }
+
   async function handleRegenerate(bases: string[]) {
     setRegen({ done: 0, total: bases.length });
 
@@ -121,7 +140,7 @@ export default function ScreenPanel() {
     );
   }
 
-  const { pi, current, next, nextChangeAt, staleRender } = status;
+  const { pi, current, next, nextChangeAt, staleRender, album, mode } = status;
 
   return (
     <div className="flex flex-col gap-4">
@@ -181,12 +200,12 @@ export default function ScreenPanel() {
           </span>
         </div>
 
-        {current ? (
+        {current && current.displayUrl ? (
           <div className="relative aspect-[5/3] w-full bg-bg-muted">
             <Image
               key={current.revision}
               src={`${current.displayUrl}?r=${current.revision}`}
-              alt={current.base}
+              alt={current.label}
               fill
               unoptimized
               className="object-contain"
@@ -194,40 +213,69 @@ export default function ScreenPanel() {
             />
           </div>
         ) : (
-          <div className="flex aspect-[5/3] items-center justify-center bg-bg-subtle">
+          <div className="flex aspect-[5/3] items-center justify-center bg-bg-subtle px-6 text-center">
             <p className="text-sm text-fg-muted">
-              Aucune image cadrée à afficher.
+              {current?.problem ?? "Aucune image cadrée à afficher."}
             </p>
           </div>
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
           <div className="text-sm">
+            {current ? (
+              <p className="font-medium">{current.label}</p>
+            ) : null}
             <p className="text-fg-muted">
               {nextChangeAt
                 ? `Change dans ${formatDelay(nextChangeAt - now)}`
-                : "Image épinglée, pas de rotation"}
+                : mode === "album"
+                  ? "En attente du calcul quotidien"
+                  : "Image épinglée, pas de rotation"}
               {next ? (
                 <>
                   {" · ensuite "}
-                  <span className="text-fg">{next.base}</span>
+                  <span className="text-fg">{next.label}</span>
                 </>
               ) : null}
             </p>
+            {album?.warning ? (
+              <p className="mt-1 text-amber-700">
+                Spotify injoignable, catalogue en cache : {album.warning}
+              </p>
+            ) : null}
+            {current?.problem && current.displayUrl ? (
+              <p className="mt-1 text-amber-700">{current.problem}</p>
+            ) : null}
+            {albumError ? (
+              <p className="mt-1 text-danger">{albumError}</p>
+            ) : null}
             {pi.lastError ? (
               <p className="mt-1 text-danger">Dernière erreur : {pi.lastError}</p>
             ) : null}
           </div>
 
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={forcing || !current}
-            onClick={() => void handleForce()}
-          >
-            <RefreshIcon />
-            {forcing ? "Envoi…" : "Afficher maintenant"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {mode === "album" ? (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={rebuilding}
+                onClick={() => void handleRebuildAlbum()}
+              >
+                <RefreshIcon />
+                {rebuilding ? "Calcul…" : "Recalculer l'album"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={forcing || !current?.displayUrl}
+              onClick={() => void handleForce()}
+            >
+              <RefreshIcon />
+              {forcing ? "Envoi…" : "Afficher maintenant"}
+            </button>
+          </div>
         </div>
       </div>
 

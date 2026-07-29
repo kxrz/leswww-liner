@@ -1,5 +1,7 @@
+import { getAlbumRender } from "@/lib/album";
 import { listCrops, listDisplay } from "@/lib/blob";
 import { getConfig } from "@/lib/config";
+import { resolveCurrent } from "@/lib/current";
 import { PANELS } from "@/lib/panels";
 import { basenameWithoutExt, selectImage } from "@/lib/selection";
 import { activePanel, getState } from "@/lib/state";
@@ -9,15 +11,23 @@ export const dynamic = "force-dynamic";
 
 export interface ScreenStatus {
   now: number;
+  mode: "gallery" | "album";
   imageCount: number;
   current: {
-    base: string;
+    kind: "gallery" | "album";
+    label: string;
     revision: string;
     displayUrl: string;
-    cropUrl: string | null;
+    previewUrl: string;
+    problem?: string;
   } | null;
-  next: { base: string; cropUrl: string | null } | null;
+  next: { label: string; previewUrl: string | null } | null;
   nextChangeAt: number | null;
+  album: {
+    dayKey: string;
+    renderedAt: number;
+    warning: string | null;
+  } | null;
   pi: {
     lastSeenAt: number;
     online: boolean;
@@ -27,7 +37,6 @@ export interface ScreenStatus {
     lastRefreshAt: number | null;
     lastError: string | null;
   };
-  /** Les PNG de display/ ne correspondent plus aux réglages courants. */
   staleRender: { reason: string; bases: string[] } | null;
 }
 
@@ -40,8 +49,9 @@ export async function GET(): Promise<NextResponse<ScreenStatus>> {
     await Promise.all([listDisplay(), listCrops(), getConfig(), getState()]);
 
   const now = Date.now();
-  const current = selectImage(display, config, now);
+  const current = await resolveCurrent(config, now);
   const detected = activePanel(state);
+  const albumRender = config.mode === "album" ? await getAlbumRender() : null;
 
   // Les PNG pré-calculés dépendent de la dalle et de la saturation choisie :
   // si l'une des deux a changé depuis, ils doivent être recalculés.
@@ -52,40 +62,56 @@ export async function GET(): Promise<NextResponse<ScreenStatus>> {
     crops.map((blob) => [basenameWithoutExt(blob.pathname), blob.url]),
   );
 
-  // Ce qui sera affiché après la prochaine bascule, pour donner un « ensuite ».
-  const next =
-    current?.nextChangeAt != null
+  // Ce qui sera affiché après la prochaine bascule, seulement en galerie :
+  // l'album de demain dépend d'un rendu qui n'existe pas encore.
+  const upcoming =
+    config.mode === "gallery" && current?.nextChangeAt != null
       ? selectImage(display, config, current.nextChangeAt)
       : null;
 
   return NextResponse.json({
     now,
+    mode: config.mode,
     imageCount: display.length,
     current: current
       ? {
-          base: current.base,
+          kind: current.kind,
+          label: current.label,
           revision: current.revision,
           displayUrl: current.url,
-          cropUrl: cropByBase.get(current.base) ?? null,
+          previewUrl:
+            current.kind === "album"
+              ? current.url
+              : (cropByBase.get(current.label) ?? current.url),
+          problem: current.problem,
         }
       : null,
     next:
-      next && next.base !== current?.base
-        ? { base: next.base, cropUrl: cropByBase.get(next.base) ?? null }
+      upcoming && upcoming.base !== current?.label
+        ? {
+            label: upcoming.base,
+            previewUrl: cropByBase.get(upcoming.base) ?? null,
+          }
         : null,
     nextChangeAt: current?.nextChangeAt ?? null,
+    album: albumRender
+      ? {
+          dayKey: albumRender.dayKey,
+          renderedAt: albumRender.renderedAt,
+          warning: albumRender.warning,
+        }
+      : null,
     pi: {
       lastSeenAt: state.lastSeenAt,
       online: state.lastSeenAt > 0 && now - state.lastSeenAt < OFFLINE_AFTER_MS,
       driver: state.driver,
       panelLabel: state.panel ? PANELS[state.panel].label : null,
-      inSync:
-        current !== null && state.displayedRevision === current.revision,
+      inSync: current !== null && state.displayedRevision === current.revision,
       lastRefreshAt: state.lastRefreshAt,
       lastError: state.lastError,
     },
     staleRender:
-      panelChanged || saturationChanged
+      config.mode === "gallery" && (panelChanged || saturationChanged)
         ? {
             reason: panelChanged
               ? `Les images ont été calculées pour une dalle ${PANELS[state.renderedPanel].label}, or le Pi rapporte une dalle ${PANELS[detected].label}. Les couleurs affichées seront fausses tant qu'elles ne sont pas recalculées.`

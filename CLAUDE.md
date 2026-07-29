@@ -76,6 +76,36 @@ réels (un cycle e-ink dure 20 à 35 s). « Afficher maintenant » passe outre.
 **Pas de cron Vercel pour ça** : le plan hobby les limite à une exécution par
 jour, déclenchée n'importe quand dans l'heure demandée.
 
+### Mode « album du jour »
+
+Playlist Spotify **publique et personnelle** uniquement : depuis le 27 novembre
+2024, les playlists éditoriales et algorithmiques sont fermées aux nouvelles
+applications. `/v1/playlists/{id}/tracks` est devenu `/items` le 11 février
+2026 (`lib/spotify.ts` tente le nouveau puis retombe sur l'ancien).
+
+- Flux *Client Credentials*, aucune connexion utilisateur.
+- Catalogue mis en cache dans le Blob ; une panne Spotify ne vide pas l'écran.
+- Sélection **fonction de la date**, jamais `Math.random()` : même jour, même
+  album, quel que soit le nombre d'exécutions.
+- Cron Vercel quotidien (`vercel.json`), ce que le plan hobby autorise.
+
+### Composer une image, pas seulement la tramer
+
+Pour tout écran composé (texte, aplats, pochette) :
+
+- **Ne jamais tramer du texte.** Illisible à cette résolution.
+- Rendre le texte **sans antialiasing** (`shape-rendering="crispEdges"` injecté
+  dans le SVG de satori). Sinon les gris de bord tombent plus près du vert ou
+  du rouge que du noir, et chaque lettre s'entoure d'un liseré coloré.
+- Quantifier les aplats contre **les seules couleurs de la mise en page**, pas
+  la palette entière, pour la même raison.
+- Ne tramer que les photographies (pochette), avec `ditherToPanel`.
+- Se limiter aux couleurs présentes sur les deux dalles (`UNIVERSAL_COLOURS`) :
+  l'orange n'existe pas en Spectra 6.
+- Le texte est vectorisé par satori avec une police **embarquée dans le dépôt**
+  (`assets/fonts/`), déclarée dans `outputFileTracingIncludes`. Aucune
+  dépendance aux polices de l'hôte.
+
 ### Performance Vercel (plan hobby)
 
 - Mémoire fonction : max ~256MB. Traiter l'image entièrement en mémoire est OK pour 800×480 (≈1.1MB raw).
@@ -98,6 +128,7 @@ app/
     store-display/route.ts ← POST, écrit crops/<base>.jpg + display/<base>.png dithé
     redither/route.ts      ← POST, recalcule un display/ après changement de dalle
     save-config/route.ts   ← POST, persiste la config validée
+    album/refresh/route.ts ← GET/POST, calcule et publie l'album du jour (cron)
 components/
   AppShell.tsx             ← "use client", navigation par onglets
   ScreenPanel.tsx          ← "use client", état live + aperçu + afficher maintenant
@@ -114,6 +145,10 @@ lib/
   config.ts                ← AppConfig, getConfig(), saveConfig() (JSON dans Blob)
   state.ts                 ← PiState (dalle, révision affichée, dernier contact)
   selection.ts             ← selectImage() : image du moment + révision
+  current.ts               ← resolveCurrent() : ce qu'il faut afficher, tous modes
+  spotify.ts               ← Client Credentials, lecture de playlist publique
+  album.ts                 ← cache catalogue, album du jour déterministe
+  compose.ts               ← mise en page « album du jour » (satori + tramage)
   dither.ts                ← ditherToPanel(raw, w, h, palette): Promise<Buffer>
 pi/
   update_display.py        ← script Pi (référence, non exécuté sur Vercel)
@@ -149,3 +184,6 @@ Fichier `.env.local` à créer localement (jamais commité). Un `.env.local.exam
 - Ne pas utiliser `sharp().png({ palette: true })` sans le dithering custom
 - Ne pas hardcoder le token Blob dans le code source
 - Ne pas ajouter de tests unitaires à ce stade
+- Ne pas utiliser `Math.random()` pour choisir ce qui s'affiche : toute
+  sélection doit être une fonction de la date ou de la tranche horaire, sinon
+  le Pi et le site ne voient pas la même chose

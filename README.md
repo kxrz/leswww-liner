@@ -23,8 +23,36 @@ demander s'il y a un changement à appliquer.
    ne change, la réponse fait quelques centaines d'octets et l'écran ne bouge
    pas. Dès qu'elle annonce un changement, il récupère le PNG et rafraîchit.
 
-La configuration (rotation, intervalle, saturation, délai de garde) est
+La configuration (mode, rotation, intervalle, saturation, délai de garde) est
 persistée en JSON dans le Blob : pas de base de données.
+
+## Mode « album du jour »
+
+L'écran peut afficher, à la place de la galerie, un album tiré chaque jour
+d'une **playlist Spotify publique que tu as créée**. Depuis le 27 novembre
+2024, les playlists éditoriales et algorithmiques de Spotify ne sont plus
+lisibles par les applications créées après cette date : seule une playlist
+personnelle rendue publique fonctionne.
+
+- L'authentification utilise le flux *Client Credentials*, sans connexion
+  utilisateur, avec `SPOTIFY_CLIENT_ID` et `SPOTIFY_CLIENT_SECRET`.
+- Le catalogue de la playlist est mis en cache dans le Blob. Si Spotify est
+  injoignable, le cache prend le relais et l'écran ne se vide pas.
+- La sélection est une fonction de la date, pas un tirage aléatoire : deux
+  exécutions le même jour donnent le même album, chaque album passe une fois
+  par cycle, et jamais deux jours de suite.
+- Le rendu est composé côté serveur avec satori, qui vectorise le texte : la
+  police est embarquée dans le dépôt, il n'y a aucune dépendance aux polices
+  installées sur l'hôte.
+- Le cron quotidien de Vercel (`vercel.json`) recalcule l'album vers 2 h du
+  matin, heure de Paris. Une exécution par jour est exactement ce que le plan
+  hobby autorise.
+
+**Seule la pochette est tramée.** Le texte et les aplats sont rendus sans
+antialiasing et rabattus sur les couleurs exactes de la palette : tramer du
+texte le rendrait illisible, et les gris de bord d'un rendu vectoriel tombent
+géométriquement plus près du vert ou du rouge que du noir, ce qui entourerait
+chaque lettre d'un liseré coloré.
 
 ## Boucle de synchronisation
 
@@ -77,9 +105,9 @@ npm run dev
 
 Créer un `.env.local` avec :
 
-```
-BLOB_READ_WRITE_TOKEN=   # Vercel Dashboard > Storage > Blob
-```
+Les variables d'environnement sont documentées dans `.env.local.example` :
+`BLOB_READ_WRITE_TOKEN` suffit pour la galerie, `SPOTIFY_CLIENT_ID` et
+`SPOTIFY_CLIENT_SECRET` s'ajoutent pour le mode album.
 
 ## Côté Raspberry Pi
 

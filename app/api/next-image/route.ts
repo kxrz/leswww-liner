@@ -1,26 +1,27 @@
-import { listDisplay } from "@/lib/blob";
 import { getConfig } from "@/lib/config";
-import { selectImage } from "@/lib/selection";
+import { resolveCurrent } from "@/lib/current";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request): Promise<Response> {
-  const [{ blobs }, config] = await Promise.all([listDisplay(), getConfig()]);
+  const config = await getConfig();
+  const current = await resolveCurrent(config);
 
-  const selection = selectImage(blobs, config, Date.now());
-
-  if (!selection) {
-    return NextResponse.json({ error: "No images available" }, { status: 404 });
+  if (!current || !current.url) {
+    return NextResponse.json(
+      { error: current?.problem ?? "No images available" },
+      { status: 404 },
+    );
   }
 
-  const etag = `"${selection.revision}"`;
+  const etag = `"${current.revision}"`;
 
   if (request.headers.get("if-none-match") === etag) {
     return new Response(null, { status: 304, headers: { ETag: etag } });
   }
 
-  const imageResponse = await fetch(selection.url);
+  const imageResponse = await fetch(current.url, { cache: "no-store" });
 
   if (!imageResponse.ok) {
     return NextResponse.json(
@@ -36,7 +37,7 @@ export async function GET(request: Request): Promise<Response> {
       "Content-Type": "image/png",
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
       ETag: etag,
-      "X-Tekpi-Revision": selection.revision,
+      "X-Tekpi-Revision": current.revision,
     },
   });
 }

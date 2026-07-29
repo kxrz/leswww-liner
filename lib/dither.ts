@@ -113,3 +113,45 @@ export async function ditherToPanel(
     .png()
     .toBuffer();
 }
+
+/**
+ * Rabat chaque pixel sur la couleur de palette la plus proche, sans propager
+ * d'erreur. À utiliser pour tout ce qui n'est pas une photo : du texte tramé
+ * est illisible, et les crénelages d'un rendu vectoriel produiraient des gris
+ * hors palette que le driver se mettrait à tramer lui-même.
+ */
+export function quantizeToPalette(
+  rawBuffer: Buffer,
+  width: number,
+  height: number,
+  palette: readonly RGB[],
+): Buffer {
+  const output = Buffer.alloc(width * height * 3);
+
+  for (let i = 0; i < output.length; i += 3) {
+    const r = rawBuffer[i];
+    const g = rawBuffer[i + 1];
+    const b = rawBuffer[i + 2];
+
+    let bestDistance = Number.POSITIVE_INFINITY;
+    let best = palette[0];
+
+    for (const colour of palette) {
+      const dr = r - colour[0];
+      const dg = g - colour[1];
+      const db = b - colour[2];
+      const distance = dr * dr + dg * dg + db * db;
+
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = colour;
+      }
+    }
+
+    output[i] = best[0];
+    output[i + 1] = best[1];
+    output[i + 2] = best[2];
+  }
+
+  return output;
+}

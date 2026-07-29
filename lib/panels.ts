@@ -2,6 +2,16 @@ export type PanelId = "acep7" | "spectra6";
 
 export type RGB = readonly [number, number, number];
 
+/** Couleurs nommées, pour composer une mise en page sans supposer la dalle. */
+export type ColourName =
+  | "black"
+  | "white"
+  | "green"
+  | "blue"
+  | "red"
+  | "yellow"
+  | "orange";
+
 export interface PanelSpec {
   id: PanelId;
   label: string;
@@ -12,6 +22,8 @@ export interface PanelSpec {
   pure: readonly RGB[];
   /** SATURATED_PALETTE du driver : ce que la dalle affiche réellement. */
   measured: readonly RGB[];
+  /** Nom de chaque entrée, dans l'ordre de la palette. */
+  names: readonly ColourName[];
   /** Fragments de nom de classe renvoyés par inky.auto() pour ce panneau. */
   driverHints: readonly string[];
 }
@@ -47,6 +59,7 @@ export const PANELS: Record<PanelId, PanelSpec> = {
       [255, 255, 68],
       [239, 121, 44],
     ],
+    names: ["black", "white", "green", "blue", "red", "yellow", "orange"],
     driverHints: ["ac073", "impressions_7", "impression73"],
   },
   // Inky Impression 7.3" 2025 Edition (PIM773), panneau Spectra 6,
@@ -73,6 +86,7 @@ export const PANELS: Record<PanelId, PanelSpec> = {
       [61, 59, 94],
       [58, 91, 70],
     ],
+    names: ["black", "white", "yellow", "red", "blue", "green"],
     driverHints: ["e673", "spectra"],
   },
 };
@@ -116,4 +130,31 @@ export function renderPalette(
       Math.trunc(measured[2] * saturation + pure[2] * (1 - saturation)),
     ] as const;
   });
+}
+
+/** Les seules couleurs présentes sur les deux dalles : une mise en page qui
+ * s'y limite est portable sans condition. */
+export const UNIVERSAL_COLOURS: ColourName[] = [
+  "black",
+  "white",
+  "red",
+  "yellow",
+  "blue",
+  "green",
+];
+
+/** Couleur nommée, dans les valeurs réellement rendues par la dalle. */
+export function paletteColour(panel: PanelSpec, name: ColourName): RGB {
+  const index = panel.names.indexOf(name);
+
+  if (index === -1) {
+    throw new Error(`${name} absent de la palette ${panel.id}`);
+  }
+
+  return renderPalette(panel)[index];
+}
+
+export function cssColour(panel: PanelSpec, name: ColourName): string {
+  const [r, g, b] = paletteColour(panel, name);
+  return `rgb(${r},${g},${b})`;
 }

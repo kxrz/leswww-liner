@@ -1,10 +1,12 @@
 import { get, put } from "@vercel/blob";
 
-export type DisplayMode = "gallery";
+export type DisplayMode = "gallery" | "album";
 export type RotationMode = "sequential" | "random" | "fixed";
 
 export interface AppConfig {
   mode: DisplayMode;
+  /** URL, URI ou identifiant d'une playlist Spotify publique. */
+  spotifyPlaylist: string | null;
   rotation: RotationMode;
   fixedImage: string | null;
   intervalHours: 1 | 2 | 4 | 8 | 24;
@@ -27,6 +29,7 @@ export interface AppConfig {
 
 export const DEFAULT_CONFIG: AppConfig = {
   mode: "gallery",
+  spotifyPlaylist: null,
   rotation: "sequential",
   fixedImage: null,
   intervalHours: 4,
@@ -41,6 +44,7 @@ const INTERVAL_HOURS: AppConfig["intervalHours"][] = [1, 2, 4, 8, 24];
 const MIN_REFRESH: AppConfig["minRefreshMinutes"][] = [0, 5, 15, 30];
 const SATURATIONS: AppConfig["renderSaturation"][] = [1, 1.15, 1.3];
 const ROTATION_MODES: RotationMode[] = ["sequential", "random", "fixed"];
+const MODES: DisplayMode[] = ["gallery", "album"];
 
 function isRotation(value: unknown): value is RotationMode {
   return ROTATION_MODES.includes(value as RotationMode);
@@ -66,7 +70,13 @@ function mergeConfig(partial: unknown): AppConfig {
   const obj = partial as Record<string, unknown>;
 
   return {
-    mode: "gallery",
+    mode: MODES.includes(obj.mode as DisplayMode)
+      ? (obj.mode as DisplayMode)
+      : DEFAULT_CONFIG.mode,
+    spotifyPlaylist:
+      typeof obj.spotifyPlaylist === "string" && obj.spotifyPlaylist
+        ? obj.spotifyPlaylist
+        : null,
     rotation: isRotation(obj.rotation) ? obj.rotation : DEFAULT_CONFIG.rotation,
     fixedImage:
       obj.fixedImage === null || typeof obj.fixedImage === "string"
@@ -100,7 +110,9 @@ export function isValidConfigInput(value: unknown): value is Omit<
   const obj = value as Record<string, unknown>;
 
   return (
-    obj.mode === "gallery" &&
+    MODES.includes(obj.mode as DisplayMode) &&
+    (obj.spotifyPlaylist === null ||
+      typeof obj.spotifyPlaylist === "string") &&
     isRotation(obj.rotation) &&
     (obj.fixedImage === null || typeof obj.fixedImage === "string") &&
     isInterval(obj.intervalHours) &&

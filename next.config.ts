@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Les polices sont lues à l'exécution par satori : sans cette inclusion
+  // explicite, le traceur de Next ne les embarque pas dans la fonction.
+  outputFileTracingIncludes: {
+    "/api/album/refresh": ["./assets/fonts/**"],
+  },
 };
 
 export default nextConfig;

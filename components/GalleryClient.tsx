@@ -11,7 +11,6 @@ type BlobItem = {
   pathname: string;
   originalUrl: string;
   cropUrl: string | null;
-  displayUrl: string | null;
   fileBase: string;
 };
 

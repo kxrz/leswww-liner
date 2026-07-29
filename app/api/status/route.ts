@@ -21,7 +21,6 @@ export interface ScreenStatus {
     label: string;
     revision: string;
     displayUrl: string;
-    previewUrl: string;
     problem?: string;
   } | null;
   next: { label: string; previewUrl: string | null } | null;
@@ -40,7 +39,11 @@ export interface ScreenStatus {
     lastRefreshAt: number | null;
     lastError: string | null;
   };
-  staleRender: { reason: string; bases: string[] } | null;
+  staleRender: {
+    reason: string;
+    bases: string[];
+    affectsAlbum: boolean;
+  } | null;
 }
 
 // Le Pi sonde toutes les minutes et se signale au moins toutes les 10 ;
@@ -83,10 +86,6 @@ export async function GET(): Promise<NextResponse<ScreenStatus>> {
           label: current.label,
           revision: current.revision,
           displayUrl: current.url,
-          previewUrl:
-            current.kind === "album"
-              ? current.url
-              : (cropByBase.get(current.label) ?? current.url),
           problem: current.problem,
         }
       : null,
@@ -115,12 +114,15 @@ export async function GET(): Promise<NextResponse<ScreenStatus>> {
       lastError: state.lastError,
     },
     staleRender:
-      config.mode === "gallery" && (panelChanged || saturationChanged)
+      panelChanged || saturationChanged
         ? {
             reason: panelChanged
               ? `Les images ont été calculées pour une dalle ${PANELS[state.renderedPanel].label}, or le Pi rapporte une dalle ${PANELS[detected].label}. Les couleurs affichées seront fausses tant qu'elles ne sont pas recalculées.`
               : `Les images ont été calculées avec une saturation de ${state.renderedSaturation}, le réglage actuel est ${config.renderSaturation}.`,
             bases: [...cropByBase.keys()],
+            // En mode album, l'image du jour est recalculée par le cron ou par
+            // le bouton dédié ; seules les photos ont besoin de la boucle.
+            affectsAlbum: config.mode === "album",
           }
         : null,
   });

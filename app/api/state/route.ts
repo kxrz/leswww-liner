@@ -1,6 +1,6 @@
 import { getConfig } from "@/lib/config";
 import { resolveCurrent } from "@/lib/current";
-import { activePanel, getState } from "@/lib/state";
+import { getState } from "@/lib/state";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +22,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     return NextResponse.json({
       refresh: false,
       revision: null,
-      reason: "no-images",
-      pollSeconds: 300,
+      reason: selection?.problem ? "not-ready" : "no-images",
+      detail: selection?.problem ?? null,
     });
   }
 
@@ -49,10 +49,10 @@ export async function GET(request: Request): Promise<NextResponse> {
         : forced
           ? "forced"
           : "changed",
+    // Purement informatif, pour le diagnostic depuis un navigateur : le Pi
+    // se contente de `refresh`.
     retryAfterSeconds: throttled
       ? Math.max(1, Math.ceil((minRefreshMs - sinceLast) / 1000))
       : 0,
-    expectedPanel: activePanel(state),
-    pollSeconds: 60,
   });
 }

@@ -1,5 +1,5 @@
 import GalleryClient from "@/components/GalleryClient";
-import { listCrops, listDisplay, listOriginals } from "@/lib/blob";
+import { listCrops, listOriginals } from "@/lib/blob";
 import { basenameWithoutExt } from "@/lib/selection";
 import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
@@ -20,16 +20,14 @@ async function deleteImageAction(formData: FormData): Promise<void> {
 }
 
 export default async function Gallery() {
-  const [{ blobs: originals }, { blobs: crops }, { blobs: display }] =
-    await Promise.all([listOriginals(), listCrops(), listDisplay()]);
+  const [{ blobs: originals }, { blobs: crops }] = await Promise.all([
+    listOriginals(),
+    listCrops(),
+  ]);
 
   const cropByBase = new Map(
     crops.map((blob) => [basenameWithoutExt(blob.pathname), blob.url]),
   );
-  const displayByBase = new Map(
-    display.map((blob) => [basenameWithoutExt(blob.pathname), blob.url]),
-  );
-
   return (
     <GalleryClient
       blobs={originals.map((blob) => {
@@ -39,7 +37,6 @@ export default async function Gallery() {
           pathname: blob.pathname,
           originalUrl: blob.url,
           cropUrl: cropByBase.get(base) ?? null,
-          displayUrl: displayByBase.get(base) ?? null,
           fileBase: base,
         };
       })}

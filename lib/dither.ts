@@ -1,101 +1,32 @@
 import sharp from "sharp";
-
-export const ACEP_PALETTE: [number, number, number][] = [
-  [0, 0, 0],
-  [255, 255, 255],
-  [0, 255, 0],
-  [0, 0, 255],
-  [255, 0, 0],
-  [255, 255, 0],
-  [255, 128, 0],
-];
-
-// Couleurs telles que le panneau ACeP 7.3" les affiche réellement :
-// SATURATED_PALETTE du driver inky_ac073tc1a.py de Pimoroni, même ordre
-// (noir, blanc, vert, bleu, rouge, jaune, orange).
-const MEASURED_PALETTE: [number, number, number][] = [
-  [0, 0, 0],
-  [217, 242, 255],
-  [3, 124, 76],
-  [27, 46, 198],
-  [245, 80, 34],
-  [255, 255, 68],
-  [239, 121, 44],
-];
-
-// 0 = distance sur les couleurs pures, 1 = distance sur les couleurs mesurées.
-// 0.5 correspond au défaut `saturation=0.5` de set_image() chez Pimoroni.
-// La distance se calcule dans cet espace mélangé pour compenser le rendu réel
-// du panneau, mais le PNG contient toujours les valeurs pures de ACEP_PALETTE.
-const MEASURED_BLEND = 0.5;
-
-const COMPARISON_PALETTE: [number, number, number][] = ACEP_PALETTE.map(
-  ([r, g, b], i) => {
-    const [mr, mg, mb] = MEASURED_PALETTE[i];
-    return [
-      r + (mr - r) * MEASURED_BLEND,
-      g + (mg - g) * MEASURED_BLEND,
-      b + (mb - b) * MEASURED_BLEND,
-    ];
-  },
-);
+import type { RGB } from "@/lib/panels";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function findNearestPaletteIndex(r: number, g: number, b: number): number {
-  let bestIndex = 0;
-  let bestDistance = Number.POSITIVE_INFINITY;
-
-  for (let i = 0; i < COMPARISON_PALETTE.length; i++) {
-    const [pr, pg, pb] = COMPARISON_PALETTE[i];
-    const dr = r - pr;
-    const dg = g - pg;
-    const db = b - pb;
-    const distance = dr * dr + dg * dg + db * db;
-
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestIndex = i;
-    }
-  }
-
-  return bestIndex;
+function pixelIndex(x: number, y: number, width: number): number {
+  return (y * width + x) * 3;
 }
 
-function pixelIndex(x: number, y: number, width: number, channel: number): number {
-  return (y * width + x) * 3 + channel;
-}
-
-function addError(
-  pixels: Float32Array,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  errR: number,
-  errG: number,
-  errB: number,
-): void {
-  if (x < 0 || x >= width || y < 0 || y >= height) {
-    return;
-  }
-
-  const index = pixelIndex(x, y, width, 0);
-  pixels[index] += errR;
-  pixels[index + 1] += errG;
-  pixels[index + 2] += errB;
-}
-
-// Controls how much of the quantization error is diffused to neighbours.
-// 1.0 = classic Floyd-Steinberg (maximum grain), 0.0 = no dithering.
-const ERROR_DIFFUSION = 0.65;
-
-export async function ditherToACeP(
+/**
+ * Dithering Floyd-Steinberg serpentin vers la palette d'une dalle e-ink.
+ *
+ * `palette` doit contenir les couleurs telles que la dalle les rend
+ * (voir renderPalette) : le PNG produit ne contient que ces valeurs exactes,
+ * ce qui permet au driver Pimoroni de les remapper sur les bons index sans
+ * re-quantifier ni re-dithérer.
+ *
+ * `errorDiffusion` module la part d'erreur propagée aux voisins : 1.0 donne le
+ * Floyd-Steinberg classique (couleur moyenne la plus fidèle, grain maximal),
+ * 0.0 supprime le tramage (aplats francs et bandes).
+ */
+export async function ditherToPanel(
   rawBuffer: Buffer,
   width: number,
   height: number,
+  palette: readonly RGB[],
+  errorDiffusion: number = 0.9,
 ): Promise<Buffer> {
   const pixelCount = width * height * 3;
   const pixels = new Float32Array(pixelCount);
@@ -103,6 +34,23 @@ export async function ditherToACeP(
   for (let i = 0; i < pixelCount; i++) {
     pixels[i] = rawBuffer[i];
   }
+
+  const addError = (
+    x: number,
+    y: number,
+    errR: number,
+    errG: number,
+    errB: number,
+  ): void => {
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+      return;
+    }
+
+    const index = pixelIndex(x, y, width);
+    pixels[index] += errR;
+    pixels[index + 1] += errG;
+    pixels[index + 2] += errB;
+  };
 
   for (let y = 0; y < height; y++) {
     // Balayage serpentin : une ligne sur deux se parcourt de droite à gauche
@@ -112,30 +60,43 @@ export async function ditherToACeP(
 
     for (let step = 0; step < width; step++) {
       const x = leftToRight ? step : width - 1 - step;
-      const baseIndex = pixelIndex(x, y, width, 0);
+      const base = pixelIndex(x, y, width);
 
-      const oldR = clamp(pixels[baseIndex], 0, 255);
-      const oldG = clamp(pixels[baseIndex + 1], 0, 255);
-      const oldB = clamp(pixels[baseIndex + 2], 0, 255);
+      const oldR = clamp(pixels[base], 0, 255);
+      const oldG = clamp(pixels[base + 1], 0, 255);
+      const oldB = clamp(pixels[base + 2], 0, 255);
 
-      const paletteIndex = findNearestPaletteIndex(oldR, oldG, oldB);
-      const [outR, outG, outB] = ACEP_PALETTE[paletteIndex];
-      const [cmpR, cmpG, cmpB] = COMPARISON_PALETTE[paletteIndex];
+      let bestR = palette[0][0];
+      let bestG = palette[0][1];
+      let bestB = palette[0][2];
+      let bestDistance = Number.POSITIVE_INFINITY;
 
-      pixels[baseIndex] = outR;
-      pixels[baseIndex + 1] = outG;
-      pixels[baseIndex + 2] = outB;
+      for (const [pr, pg, pb] of palette) {
+        const dr = oldR - pr;
+        const dg = oldG - pg;
+        const db = oldB - pb;
+        const distance = dr * dr + dg * dg + db * db;
 
-      // L'erreur se mesure contre la couleur perçue (palette mélangée), pas
-      // contre la valeur pure écrite dans le PNG.
-      const errR = (oldR - cmpR) * ERROR_DIFFUSION;
-      const errG = (oldG - cmpG) * ERROR_DIFFUSION;
-      const errB = (oldB - cmpB) * ERROR_DIFFUSION;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestR = pr;
+          bestG = pg;
+          bestB = pb;
+        }
+      }
 
-      addError(pixels, x + dir, y, width, height, errR * (7 / 16), errG * (7 / 16), errB * (7 / 16));
-      addError(pixels, x - dir, y + 1, width, height, errR * (3 / 16), errG * (3 / 16), errB * (3 / 16));
-      addError(pixels, x, y + 1, width, height, errR * (5 / 16), errG * (5 / 16), errB * (5 / 16));
-      addError(pixels, x + dir, y + 1, width, height, errR * (1 / 16), errG * (1 / 16), errB * (1 / 16));
+      pixels[base] = bestR;
+      pixels[base + 1] = bestG;
+      pixels[base + 2] = bestB;
+
+      const errR = (oldR - bestR) * errorDiffusion;
+      const errG = (oldG - bestG) * errorDiffusion;
+      const errB = (oldB - bestB) * errorDiffusion;
+
+      addError(x + dir, y, errR * (7 / 16), errG * (7 / 16), errB * (7 / 16));
+      addError(x - dir, y + 1, errR * (3 / 16), errG * (3 / 16), errB * (3 / 16));
+      addError(x, y + 1, errR * (5 / 16), errG * (5 / 16), errB * (5 / 16));
+      addError(x + dir, y + 1, errR * (1 / 16), errG * (1 / 16), errB * (1 / 16));
     }
   }
 
@@ -145,16 +106,10 @@ export async function ditherToACeP(
     output[i] = Math.round(clamp(pixels[i], 0, 255));
   }
 
-  // Surtout pas de png({ palette: true }) ici : libimagequant altère les
-  // couleurs même avec dither: 0 et quality: 100 (vérifié : un rouge pur
-  // ressort en rgb(144,0,0)), or le panneau exige les valeurs exactes.
-  return sharp(output, {
-    raw: {
-      width,
-      height,
-      channels: 3,
-    },
-  })
+  // Surtout pas de png({ palette: true }) : libimagequant altère les couleurs
+  // même avec dither: 0 et quality: 100 (un rouge pur ressort en rgb(144,0,0)),
+  // or la correspondance avec la palette de la dalle doit rester exacte.
+  return sharp(output, { raw: { width, height, channels: 3 } })
     .png()
     .toBuffer();
 }

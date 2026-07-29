@@ -8,30 +8,43 @@ Architecture : Next.js App Router déployé sur Vercel + script Python sur Raspb
 ## Stack
 
 - **Framework** : Next.js 14+ App Router (TypeScript strict)
-- **Style** : Tailwind CSS, mobile-first, fond sombre
+- **Style** : Tailwind CSS, mobile-first, thème clair neutre (tokens dans `globals.css`)
 - **Stockage** : Vercel Blob (`@vercel/blob`)
 - **Traitement image** : Sharp + dithering Floyd-Steinberg custom (voir `lib/dither.ts`)
 - **Déploiement** : Vercel (plan hobby acceptable)
 
 ## Contraintes impératives
 
-### Écran ACeP 800×480 — 7 couleurs exactes
+### La palette dépend de la dalle — ne jamais la coder en dur
 
-La palette matérielle est FIXE. Toute couleur en dehors de ces valeurs exactes est approximée grossièrement par le contrôleur hardware :
+Deux matériels portent le nom « Inky Impression 7.3" » :
 
-```ts
-export const ACEP_PALETTE: [number, number, number][] = [
-  [0, 0, 0],       // Noir
-  [255, 255, 255],  // Blanc
-  [0, 255, 0],      // Vert
-  [0, 0, 255],      // Bleu
-  [255, 0, 0],      // Rouge
-  [255, 255, 0],    // Jaune
-  [255, 128, 0],    // Orange
-];
-```
+| Dalle | Produit | Driver Pimoroni | Couleurs |
+|---|---|---|---|
+| ACeP 7 | PIM673 | `inky_ac073tc1a.py` | noir, blanc, vert, bleu, rouge, jaune, orange |
+| Spectra 6 | PIM773 (2025) | `inky_e673.py` | noir, blanc, jaune, rouge, bleu, vert (**pas d'orange**) |
 
-**NE PAS utiliser** `sharp().png({ palette: true, colors: 7 })` seul — cela choisit les 7 couleurs dominantes de l'image, pas la palette ACeP. Le dithering custom dans `lib/dither.ts` est obligatoire.
+Les deux sont décrits dans `lib/panels.ts`. La dalle n'est **jamais** supposée :
+le Pi la détecte avec `inky.auto()`, envoie le nom de classe du driver à
+`/api/heartbeat`, et le serveur dithère vers la palette correspondante.
+
+### Dithérer vers les couleurs rendues, pas vers les primaires pures
+
+`renderPalette()` mélange à parts égales les deux palettes du driver
+(`DESATURATED_PALETTE`, les RGB purs, et `SATURATED_PALETTE`, le rendu réel),
+ce qui reproduit le `saturation=0.5` par défaut de `set_image()`. Le PNG
+contient ces couleurs mélangées, et le Pi appelle
+`set_image(img, saturation=0.5)` : PIL retrouve chaque couleur à l'identique et
+se contente de l'indexer, sans re-quantifier ni re-dithérer.
+
+**Ne pas dithérer vers les primaires pures.** Le driver ajoute une entrée
+« clean » de valeur `[255, 255, 255]` en fin de palette : un blanc pur y est
+capté et sort des couleurs affichables (vérifié : index 7 au lieu de 1 sur
+ACeP, 6 au lieu de 1 sur Spectra).
+
+**Ne pas utiliser** `sharp().png({ palette: true })` : libimagequant altère les
+couleurs même avec `dither: 0` et `quality: 100` (un rouge pur ressort en
+`rgb(144,0,0)`), ce qui casse la correspondance exacte avec la palette.
 
 ### Route `/api/next-image`
 
@@ -41,6 +54,27 @@ export const ACEP_PALETTE: [number, number, number][] = [
 - Sert les PNG pré-dithés de `display/` — aucun traitement d'image au moment du GET
 - Rotation sans état serveur, par tranche horaire `slot = Math.floor(Date.now() / (intervalHours * 3600 * 1000))` : séquentiel (`slot % n`), aléatoire (RNG seedé par `slot`), ou image fixe (config)
 - Supporte `If-None-Match` → `304` si l'image du moment n'a pas changé (le Pi évite un refresh ACeP inutile)
+
+### Boucle de synchronisation Pi ↔ serveur
+
+Toute la décision est prise en ligne ; le Pi obéit. Cron **toutes les minutes** :
+
+1. `GET /api/state?revision=<affichée>` → `{ refresh, revision, reason, retryAfterSeconds }`
+2. si `refresh`, `GET /api/next-image` puis `set_image()` + `show()`
+3. `POST /api/heartbeat` après un rafraîchissement, une erreur, ou toutes les 10 min
+
+Un sondage sans changement ne transfère que quelques centaines d'octets, d'où
+la fréquence à la minute. Les écritures dans le Blob sont limitées au heartbeat.
+
+`revision` = `sha1(pathname + uploadedAt + forceRefreshAt)` : elle change quand
+l'image du moment change, quand un re-cadrage écrase le blob à URL identique,
+et quand « Afficher maintenant » est déclenché depuis le site.
+
+`config.minRefreshMinutes` impose un délai de garde entre deux rafraîchissements
+réels (un cycle e-ink dure 20 à 35 s). « Afficher maintenant » passe outre.
+
+**Pas de cron Vercel pour ça** : le plan hobby les limite à une exécution par
+jour, déclenchée n'importe quand dans l'heure demandée.
 
 ### Performance Vercel (plan hobby)
 
@@ -52,27 +86,41 @@ export const ACEP_PALETTE: [number, number, number][] = [
 ```
 app/
   layout.tsx
-  page.tsx                 ← galerie + upload + settings (composition server/client)
-  globals.css
+  page.tsx                 ← compose AppShell (onglets Écran / Bibliothèque / Réglages)
+  globals.css              ← tokens de design + classes .card/.badge/.btn/.chip
   api/
+    state/route.ts         ← GET, décision de rafraîchissement pour le Pi
+    heartbeat/route.ts     ← POST, le Pi rapporte dalle + révision affichée
+    status/route.ts        ← GET, état complet pour l'onglet Écran du site
+    force-refresh/route.ts ← POST, « Afficher maintenant »
+    next-image/route.ts    ← GET, PNG pré-dithé pour le Pi (ETag/304)
     upload/route.ts        ← POST, upload vers Blob originals/ (nom de base unique)
     store-display/route.ts ← POST, écrit crops/<base>.jpg + display/<base>.png dithé
-    next-image/route.ts    ← GET, sélection + PNG pré-dithé pour le Pi (ETag/304)
+    redither/route.ts      ← POST, recalcule un display/ après changement de dalle
     save-config/route.ts   ← POST, persiste la config validée
 components/
+  AppShell.tsx             ← "use client", navigation par onglets
+  ScreenPanel.tsx          ← "use client", état live + aperçu + afficher maintenant
+  Icons.tsx                ← SVG inline, aucune dépendance d'icônes
   UploadForm.tsx           ← "use client", compression canvas + POST upload
   Gallery.tsx              ← server component, liste + suppression via server action
-  GalleryClient.tsx        ← "use client", grille + modal d'édition
+  GalleryClient.tsx        ← "use client", grille, modal d'édition, aperçu du rendu
   ImageEditor.tsx          ← "use client", crop/rotate (cropperjs)
   Settings.tsx             ← server component, charge config + images
-  SettingsClient.tsx       ← "use client", rotation/intervalle/image épinglée
+  SettingsClient.tsx       ← "use client", rotation/intervalle/délai de garde
 lib/
+  panels.ts                ← dalles supportées, renderPalette(), détection driver
   blob.ts                  ← listOriginals(), listCrops(), listDisplay()
   config.ts                ← AppConfig, getConfig(), saveConfig() (JSON dans Blob)
-  dither.ts                ← ditherToACeP(rawBuffer, width, height): Promise<Buffer>
+  state.ts                 ← PiState (dalle, révision affichée, dernier contact)
+  selection.ts             ← selectImage() : image du moment + révision
+  dither.ts                ← ditherToPanel(raw, w, h, palette): Promise<Buffer>
 pi/
   update_display.py        ← script Pi (référence, non exécuté sur Vercel)
 ```
+
+**Config et état sont distincts** : `config/settings.json` est l'intention de
+l'utilisateur, `state/pi.json` est la réalité rapportée par le Pi.
 
 Le matching entre les trois buckets se fait par nom de base sans extension
 (`originals/<base>.jpg` ↔ `crops/<base>.jpg` ↔ `display/<base>.png`) ; le nom

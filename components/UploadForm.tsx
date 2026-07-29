@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckIcon, PlusIcon } from "@/components/Icons";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useState } from "react";
 
@@ -129,10 +130,10 @@ export default function UploadForm() {
   return (
     <form onSubmit={handleSubmit}>
       <label
-        className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-6 py-10 text-center transition-colors duration-150 ${
+        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-6 py-10 text-center transition-colors duration-150 ${
           compressedFile
-            ? "border-white/[0.15] bg-white/[0.04]"
-            : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04]"
+            ? "border-line-strong bg-bg-subtle"
+            : "border-line bg-bg hover:border-line-strong hover:bg-bg-subtle"
         }`}
       >
         <input
@@ -144,40 +145,33 @@ export default function UploadForm() {
         />
 
         {compressing ? (
-          <>
-            <span className="text-2xl text-zinc-600">…</span>
-            <span className="text-sm text-zinc-500">Compression en cours…</span>
-          </>
+          <span className="text-sm text-fg-muted">Compression en cours…</span>
         ) : compressedFile ? (
           <>
-            <span className="text-2xl text-zinc-500">✓</span>
-            <span className="max-w-full truncate text-sm font-medium text-[var(--text-primary)]">
+            <CheckIcon className="h-5 w-5 stroke-ok" />
+            <span className="max-w-full truncate text-sm font-medium">
               {originalFileName}
             </span>
-            <span className="text-xs text-zinc-500">Cliquer pour changer</span>
+            <span className="text-xs text-fg-muted">Cliquer pour changer</span>
           </>
         ) : (
           <>
-            <span className="text-2xl text-zinc-600">+</span>
-            <div>
-              <p className="text-sm font-medium text-[var(--text-primary)]">
-                Choisir une image
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">JPEG ou PNG</p>
-            </div>
+            <PlusIcon className="h-5 w-5 stroke-fg-faint" />
+            <span className="text-sm font-medium">Ajouter une image</span>
+            <span className="text-xs text-fg-muted">JPEG ou PNG</span>
           </>
         )}
       </label>
 
       <button
         type="submit"
+        className="btn btn-primary mt-3 w-full"
         disabled={!isIdle || !compressedFile}
-        className="mt-3 w-full rounded-md bg-white px-4 py-2.5 text-sm font-medium text-black transition-colors duration-150 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
       >
         {uploading ? "Envoi en cours…" : "Envoyer"}
       </button>
 
-      {error ? <p className="mt-2 text-sm text-red-400">{error}</p> : null}
+      {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
     </form>
   );
 }

@@ -8,6 +8,21 @@ export interface AppConfig {
   rotation: RotationMode;
   fixedImage: string | null;
   intervalHours: 1 | 2 | 4 | 8 | 24;
+  /**
+   * Délai minimal entre deux rafraîchissements réels de la dalle. Un cycle
+   * ACeP dure 20 à 35 s et Pimoroni recommande d'espacer les rafraîchissements
+   * complets ; un aller-retour dans les réglages ne doit pas faire clignoter
+   * l'écran en boucle. Contourné par « Afficher maintenant ».
+   */
+  minRefreshMinutes: 0 | 5 | 15 | 30;
+  /**
+   * Saturation appliquée avant dithering. 1.0 est le rendu le plus fidèle
+   * (mesuré en ΔE) ; Pimoroni conseille de monter quand le résultat paraît
+   * terne sur la dalle. C'est un réglage de goût, à juger sur l'aperçu.
+   */
+  renderSaturation: 1 | 1.15 | 1.3;
+  /** Horodatage du dernier « Afficher maintenant » déclenché depuis le site. */
+  forceRefreshAt: number;
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -15,38 +30,69 @@ export const DEFAULT_CONFIG: AppConfig = {
   rotation: "sequential",
   fixedImage: null,
   intervalHours: 4,
+  minRefreshMinutes: 5,
+  renderSaturation: 1,
+  forceRefreshAt: 0,
 };
 
 const CONFIG_PATH = "config/settings.json";
 
 const INTERVAL_HOURS: AppConfig["intervalHours"][] = [1, 2, 4, 8, 24];
+const MIN_REFRESH: AppConfig["minRefreshMinutes"][] = [0, 5, 15, 30];
+const SATURATIONS: AppConfig["renderSaturation"][] = [1, 1.15, 1.3];
 const ROTATION_MODES: RotationMode[] = ["sequential", "random", "fixed"];
+
+function isRotation(value: unknown): value is RotationMode {
+  return ROTATION_MODES.includes(value as RotationMode);
+}
+
+function isInterval(value: unknown): value is AppConfig["intervalHours"] {
+  return INTERVAL_HOURS.includes(value as AppConfig["intervalHours"]);
+}
+
+function isMinRefresh(value: unknown): value is AppConfig["minRefreshMinutes"] {
+  return MIN_REFRESH.includes(value as AppConfig["minRefreshMinutes"]);
+}
+
+function isSaturation(value: unknown): value is AppConfig["renderSaturation"] {
+  return SATURATIONS.includes(value as AppConfig["renderSaturation"]);
+}
 
 function mergeConfig(partial: unknown): AppConfig {
   if (!partial || typeof partial !== "object") {
     return DEFAULT_CONFIG;
   }
 
-  const obj = partial as Partial<AppConfig>;
+  const obj = partial as Record<string, unknown>;
 
   return {
     mode: "gallery",
-    rotation: ROTATION_MODES.includes(obj.rotation as RotationMode)
-      ? (obj.rotation as RotationMode)
-      : DEFAULT_CONFIG.rotation,
+    rotation: isRotation(obj.rotation) ? obj.rotation : DEFAULT_CONFIG.rotation,
     fixedImage:
       obj.fixedImage === null || typeof obj.fixedImage === "string"
-        ? (obj.fixedImage ?? DEFAULT_CONFIG.fixedImage)
+        ? ((obj.fixedImage as string | null) ?? DEFAULT_CONFIG.fixedImage)
         : DEFAULT_CONFIG.fixedImage,
-    intervalHours: INTERVAL_HOURS.includes(
-      obj.intervalHours as AppConfig["intervalHours"],
-    )
-      ? (obj.intervalHours as AppConfig["intervalHours"])
+    intervalHours: isInterval(obj.intervalHours)
+      ? obj.intervalHours
       : DEFAULT_CONFIG.intervalHours,
+    minRefreshMinutes: isMinRefresh(obj.minRefreshMinutes)
+      ? obj.minRefreshMinutes
+      : DEFAULT_CONFIG.minRefreshMinutes,
+    renderSaturation: isSaturation(obj.renderSaturation)
+      ? obj.renderSaturation
+      : DEFAULT_CONFIG.renderSaturation,
+    forceRefreshAt:
+      typeof obj.forceRefreshAt === "number" && Number.isFinite(obj.forceRefreshAt)
+        ? obj.forceRefreshAt
+        : DEFAULT_CONFIG.forceRefreshAt,
   };
 }
 
-export function isValidAppConfig(value: unknown): value is AppConfig {
+/** Valide la partie de la config que le formulaire de réglages peut écrire. */
+export function isValidConfigInput(value: unknown): value is Omit<
+  AppConfig,
+  "forceRefreshAt"
+> {
   if (!value || typeof value !== "object") {
     return false;
   }
@@ -55,11 +101,11 @@ export function isValidAppConfig(value: unknown): value is AppConfig {
 
   return (
     obj.mode === "gallery" &&
-    typeof obj.rotation === "string" &&
-    ROTATION_MODES.includes(obj.rotation as RotationMode) &&
+    isRotation(obj.rotation) &&
     (obj.fixedImage === null || typeof obj.fixedImage === "string") &&
-    typeof obj.intervalHours === "number" &&
-    INTERVAL_HOURS.includes(obj.intervalHours as AppConfig["intervalHours"])
+    isInterval(obj.intervalHours) &&
+    isMinRefresh(obj.minRefreshMinutes) &&
+    isSaturation(obj.renderSaturation)
   );
 }
 

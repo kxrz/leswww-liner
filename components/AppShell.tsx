@@ -65,7 +65,10 @@ export default function AppShell({
                 : "text-fg-muted hover:text-fg"
             }`}
           >
-            {tab.icon}
+            {/* Sous 360 px, les trois libellés et leurs icônes ne tiennent plus
+                sur une ligne. Retirer l'icône suffit à tout faire rentrer, sans
+                masquer un onglet derrière un menu. */}
+            <span className="hidden sm:inline-flex">{tab.icon}</span>
             {tab.label}
           </button>
         ))}

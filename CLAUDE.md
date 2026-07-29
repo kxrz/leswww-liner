@@ -36,9 +36,11 @@ export const ACEP_PALETTE: [number, number, number][] = [
 ### Route `/api/next-image`
 
 - Sortie : PNG, `Content-Type: image/png`
-- Headers : `Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate`
+- Headers : `Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate` + `ETag`
 - Dimensions exactes : 800 × 480 px, mode `cover`
-- Rotation d'images : `Math.floor(Date.now() / (4 * 3600 * 1000)) % images.length` (sans état serveur)
+- Sert les PNG pré-dithés de `display/` — aucun traitement d'image au moment du GET
+- Rotation sans état serveur, par tranche horaire `slot = Math.floor(Date.now() / (intervalHours * 3600 * 1000))` : séquentiel (`slot % n`), aléatoire (RNG seedé par `slot`), ou image fixe (config)
+- Supporte `If-None-Match` → `304` si l'image du moment n'a pas changé (le Pi évite un refresh ACeP inutile)
 
 ### Performance Vercel (plan hobby)
 
@@ -50,20 +52,31 @@ export const ACEP_PALETTE: [number, number, number][] = [
 ```
 app/
   layout.tsx
-  page.tsx               ← galerie + upload (composition server/client)
+  page.tsx                 ← galerie + upload + settings (composition server/client)
   globals.css
   api/
-    upload/route.ts      ← POST, upload vers Vercel Blob
-    next-image/route.ts  ← GET, traitement + sortie PNG pour le Pi
+    upload/route.ts        ← POST, upload vers Blob originals/ (nom de base unique)
+    store-display/route.ts ← POST, écrit crops/<base>.jpg + display/<base>.png dithé
+    next-image/route.ts    ← GET, sélection + PNG pré-dithé pour le Pi (ETag/304)
+    save-config/route.ts   ← POST, persiste la config validée
 components/
-  UploadForm.tsx         ← "use client", gère le file input et le POST
-  Gallery.tsx            ← server component, liste + suppression via server action
+  UploadForm.tsx           ← "use client", compression canvas + POST upload
+  Gallery.tsx              ← server component, liste + suppression via server action
+  GalleryClient.tsx        ← "use client", grille + modal d'édition
+  ImageEditor.tsx          ← "use client", crop/rotate (cropperjs)
+  Settings.tsx             ← server component, charge config + images
+  SettingsClient.tsx       ← "use client", rotation/intervalle/image épinglée
 lib/
-  blob.ts                ← listImages(), deleteImage(url)
-  dither.ts              ← ditherToACeP(rawBuffer, width, height): Promise<Buffer>
+  blob.ts                  ← listOriginals(), listCrops(), listDisplay()
+  config.ts                ← AppConfig, getConfig(), saveConfig() (JSON dans Blob)
+  dither.ts                ← ditherToACeP(rawBuffer, width, height): Promise<Buffer>
 pi/
-  update_display.py      ← script Pi (référence, non exécuté sur Vercel)
+  update_display.py        ← script Pi (référence, non exécuté sur Vercel)
 ```
+
+Le matching entre les trois buckets se fait par nom de base sans extension
+(`originals/<base>.jpg` ↔ `crops/<base>.jpg` ↔ `display/<base>.png`) ; le nom
+de base est rendu unique à l'upload (slug + suffixe aléatoire).
 
 ## Variables d'environnement requises
 

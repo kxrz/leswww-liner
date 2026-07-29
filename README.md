@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# tekpi-eink
 
-## Getting Started
+Cadre photo connecté pour écran e-ink couleur **Pimoroni Inky Frame 7.3"** (PIM773, panneau ACeP 800×480, 7 couleurs).
 
-First, run the development server:
+Deux moitiés qui ne se parlent que par une URL :
+
+- une **web app Next.js sur Vercel** pour uploader, cadrer et gérer les photos ;
+- un **script Python sur Raspberry Pi Zero 2 W** qui récupère l'image du moment et rafraîchit l'écran.
+
+## Comment ça marche
+
+1. **Upload** : la photo est compressée côté client (max 1800 px, JPEG), puis stockée dans Vercel Blob sous `originals/` avec un nom de base unique.
+2. **Cadrage** : un clic sur la vignette ouvre un éditeur (cropperjs, ratio 5:3, rotation). À la validation, `/api/store-display` écrit :
+   - `crops/<base>.jpg` : la version cadrée affichée dans la galerie ;
+   - `display/<base>.png` : le PNG 800×480 **pré-dithé** vers la palette ACeP (Floyd-Steinberg serpentin, distance calculée sur les couleurs réellement affichées par le panneau, voir `lib/dither.ts`).
+3. **Affichage** : le Pi appelle `/api/next-image` (cron), qui choisit une image selon la configuration et renvoie le PNG prêt à afficher. Le Pi ne calcule rien.
+
+La configuration (ordre de rotation, intervalle, image épinglée) est persistée en JSON dans le Blob : pas de base de données.
+
+## Route `/api/next-image`
+
+- `GET` → PNG 800×480, `Content-Type: image/png`.
+- Rotation **séquentielle** ou **aléatoire** par tranche horaire (1, 2, 4, 8 ou 24 h), sans état serveur, ou **image fixe**.
+- Supporte `If-None-Match` : réponse `304` si l'image du moment n'a pas changé, ce qui évite au Pi un refresh ACeP inutile (une trentaine de secondes de flashs).
+
+## Développement local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Créer un `.env.local` avec :
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+BLOB_READ_WRITE_TOKEN=   # Vercel Dashboard > Storage > Blob
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Côté Raspberry Pi
 
-## Learn More
+Le script `pi/update_display.py` (dépendances : `requests`, `pillow`, `inky`) s'exécute via cron, par exemple toutes les heures :
 
-To learn more about Next.js, take a look at the following resources:
+```cron
+0 * * * * python3 /home/pi/update_display.py
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Il mémorise l'ETag de la dernière image affichée dans `/home/pi/.tekpi_etag` et ne rafraîchit l'écran que si l'image a changé. Les erreurs sont journalisées dans `/home/pi/display_error.log`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Contraintes matérielles
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+La palette ACeP est fixe : noir, blanc, vert, bleu, rouge, jaune, orange. Toute autre couleur est approximée grossièrement par le contrôleur, d'où le dithering custom obligatoire (voir `lib/dither.ts` et `CLAUDE.md` pour le détail des contraintes).

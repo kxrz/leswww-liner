@@ -57,24 +57,44 @@ couleurs même avec `dither: 0` et `quality: 100` (un rouge pur ressort en
 
 ### Boucle de synchronisation Pi ↔ serveur
 
-Toute la décision est prise en ligne ; le Pi obéit. Cron **toutes les minutes** :
+Toute la décision est prise en ligne ; le Pi obéit. Le cron le réveille
+chaque minute :
 
-1. `GET /api/state?revision=<affichée>` → `{ refresh, revision, reason, retryAfterSeconds }`
+1. `GET /api/state?revision=<affichée>` → `{ refresh, revision, reason, retryAfterSeconds, pollSeconds }`
 2. si `refresh`, `GET /api/next-image` puis `set_image()` + `show()`
 3. `POST /api/heartbeat` après un rafraîchissement, une erreur, ou toutes les 10 min
 
-Un sondage sans changement ne transfère que quelques centaines d'octets, d'où
-la fréquence à la minute. Les écritures dans le Blob sont limitées au heartbeat.
+**Le cron tourne à la minute mais la cadence réelle vient du serveur** :
+`pollSeconds` est mémorisé par le Pi, qui s'arrête aussitôt si le délai n'est
+pas écoulé. `config.pollMinutes` se règle donc depuis le site sans toucher au
+crontab. Un sondage sans changement ne transfère que quelques centaines
+d'octets et n'allume pas la dalle. Les écritures dans le Blob sont limitées au
+heartbeat.
 
 `revision` = `sha1(pathname + uploadedAt + forceRefreshAt)` : elle change quand
 l'image du moment change, quand un re-cadrage écrase le blob à URL identique,
 et quand « Afficher maintenant » est déclenché depuis le site.
 
-`config.minRefreshMinutes` impose un délai de garde entre deux rafraîchissements
-réels (un cycle e-ink dure 20 à 35 s). « Afficher maintenant » passe outre.
+**Pas de cron Vercel pour la synchronisation** : le plan hobby les limite à une
+exécution par jour, déclenchée n'importe quand dans l'heure demandée. Le cron
+quotidien de `vercel.json` ne sert qu'à l'album du jour.
 
-**Pas de cron Vercel pour ça** : le plan hobby les limite à une exécution par
-jour, déclenchée n'importe quand dans l'heure demandée.
+### Usure de la dalle
+
+Une dalle e-ink a un nombre de cycles fini. `state.refreshCount` est incrémenté
+à chaque heartbeat marqué `refreshed`, et affiché dans l'onglet Écran avec la
+moyenne quotidienne : **on ne surveille pas une usure qu'on ne compte pas.**
+`config.minRefreshMinutes` (15 par défaut) est le garde-fou contre les cycles
+rapprochés ; le vrai risque n'est pas l'usage normal mais l'accident.
+
+### Journal
+
+`lib/journal.ts` tient un tampon circulaire de 120 entrées dans le Blob,
+alimenté par les deux côtés : le Pi joint ses événements du cycle au heartbeat
+(`events`), le serveur ajoute les siens via `logServer()`. Consultable dans
+l'onglet Écran, replié et chargé à la demande par `/api/journal` — hors de
+`/api/status` pour ne pas alourdir le sondage.
+
 
 ### Mode « album du jour »
 
@@ -144,6 +164,7 @@ app/
     state/route.ts         ← GET, décision de rafraîchissement pour le Pi
     heartbeat/route.ts     ← POST, le Pi rapporte dalle + révision affichée
     status/route.ts        ← GET, état complet pour l'onglet Écran du site
+    journal/route.ts       ← GET, journal (chargé à la demande, pas au sondage)
     force-refresh/route.ts ← POST, « Afficher maintenant »
     next-image/route.ts    ← GET, PNG pré-dithé pour le Pi (ETag/304)
     upload/route.ts        ← POST, upload vers Blob originals/ (nom de base unique)
@@ -155,6 +176,7 @@ app/
 components/
   AppShell.tsx             ← "use client", navigation par onglets
   ScreenPanel.tsx          ← "use client", état live + aperçu + afficher maintenant
+  JournalPanel.tsx         ← "use client", journal replié, chargé à la demande
   Icons.tsx                ← SVG inline, aucune dépendance d'icônes
   UploadForm.tsx           ← "use client", compression canvas + POST upload
   Gallery.tsx              ← server component, liste + suppression via server action
@@ -169,6 +191,7 @@ lib/
   blob.ts                  ← listOriginals(), listCrops(), listDisplay()
   config.ts                ← AppConfig, getConfig(), saveConfig() (JSON dans Blob)
   state.ts                 ← PiState (dalle, révision affichée, dernier contact)
+  journal.ts               ← tampon circulaire d'événements Pi + serveur
   selection.ts             ← selectImage() : image du moment + révision
   current.ts               ← resolveCurrent() : ce qu'il faut afficher, tous modes
   spotify.ts               ← Client Credentials, lecture de playlist publique

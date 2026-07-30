@@ -2,6 +2,7 @@
 
 import type { ScreenStatus } from "@/app/api/status/route";
 import { AlertIcon, CheckIcon, RefreshIcon } from "@/components/Icons";
+import JournalPanel from "@/components/JournalPanel";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
@@ -70,14 +71,26 @@ export default function ScreenPanel() {
       }
     };
 
+    // Un onglet oublié en arrière-plan interrogeait /api/status toutes les
+    // 15 s indéfiniment, soit plusieurs milliers d'opérations Blob par jour
+    // pour personne. On ne sonde que quand la page est visible, et on
+    // rattrape immédiatement au retour.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void fetchStatus();
+      }
+    };
+
     void fetchStatus();
-    const poll = setInterval(() => void fetchStatus(), POLL_MS);
+    const poll = setInterval(onVisible, POLL_MS);
     const tick = setInterval(() => setNow(Date.now()), 1000);
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       cancelled = true;
       clearInterval(poll);
       clearInterval(tick);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [reloadKey]);
 
@@ -110,21 +123,41 @@ export default function ScreenPanel() {
 
   async function handleRegenerate(bases: string[]) {
     setRegen({ done: 0, total: bases.length });
+    setAlbumError(null);
+    const failed: string[] = [];
 
     for (let i = 0; i < bases.length; i++) {
-      await fetch("/api/redither", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ base: bases[i] }),
-      });
+      try {
+        const response = await fetch("/api/redither", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ base: bases[i] }),
+        });
+        if (!response.ok) {
+          failed.push(bases[i]);
+        }
+      } catch {
+        failed.push(bases[i]);
+      }
       setRegen({ done: i + 1, total: bases.length });
     }
 
-    await fetch("/api/redither", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ finalize: true }),
-    });
+    // Ne finaliser que si tout est passé : marquer l'état comme à jour alors
+    // que des images sont restées fausses ferait disparaître l'avertissement
+    // sans que le problème soit résolu.
+    if (failed.length === 0) {
+      await fetch("/api/redither", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ finalize: true }),
+      });
+    } else {
+      setAlbumError(
+        `${failed.length} image${failed.length > 1 ? "s" : ""} sur ${bases.length} n'${
+          failed.length > 1 ? "ont" : "a"
+        } pas pu être recalculée${failed.length > 1 ? "s" : ""}. L'avertissement reste affiché.`,
+      );
+    }
 
     setRegen(null);
     reload();
@@ -142,6 +175,12 @@ export default function ScreenPanel() {
 
   const { pi, current, next, nextChangeAt, staleRender, album, mode } = status;
   const { authConfigured } = status;
+
+  // Rythme d'usure observé, plus parlant qu'un total brut.
+  const days = pi.firstSeenAt
+    ? Math.max(1, (now - pi.firstSeenAt) / 86400000)
+    : null;
+  const perDay = days ? (pi.refreshCount / days).toFixed(1) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -173,10 +212,16 @@ export default function ScreenPanel() {
                 Les images doivent être recalculées
               </p>
               <p className="mt-1 text-sm text-amber-800">{staleRender.reason}</p>
+              {staleRender.affectsAlbum ? (
+                <p className="mt-1 text-sm text-amber-800">
+                  L&apos;album du jour est concerné lui aussi : utilise
+                  « Recalculer l&apos;album » ci-dessous.
+                </p>
+              ) : null}
               <button
                 type="button"
                 className="btn btn-ghost mt-3"
-                disabled={regen !== null}
+                disabled={regen !== null || staleRender.bases.length === 0}
                 onClick={() => void handleRegenerate(staleRender.bases)}
               >
                 <RefreshIcon />
@@ -322,8 +367,35 @@ export default function ScreenPanel() {
             <dt className="text-fg-muted">Images disponibles</dt>
             <dd className="text-right">{status.imageCount}</dd>
           </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-fg-muted">Cadence de sondage</dt>
+            <dd className="text-right">
+              {status.pollMinutes === 1
+                ? "chaque minute"
+                : `toutes les ${status.pollMinutes} min`}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-fg-muted">Cycles de la dalle</dt>
+            <dd className="text-right">
+              {pi.refreshCount}
+              {pi.firstSeenAt ? (
+                <span className="text-fg-muted">
+                  {" "}
+                  · {perDay} / jour
+                </span>
+              ) : null}
+            </dd>
+          </div>
         </dl>
+        <p className="sect-sub mt-3">
+          Une dalle e-ink a un nombre de cycles fini. Espacer les
+          rafraîchissements coûte peu et prolonge le matériel : le délai de
+          garde et l&apos;intervalle de rotation se règlent dans Réglages.
+        </p>
       </div>
+
+      <JournalPanel />
     </div>
   );
 }

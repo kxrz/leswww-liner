@@ -1,5 +1,6 @@
-import { listCrops } from "@/lib/blob";
+import { isSafeBase, listCrops } from "@/lib/blob";
 import { getConfig } from "@/lib/config";
+import { logServer } from "@/lib/journal";
 import { PANELS } from "@/lib/panels";
 import { DEFAULT_RENDER, renderForPanel } from "@/lib/render";
 import { basenameWithoutExt } from "@/lib/selection";
@@ -32,11 +33,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       renderedPanel: panelId,
       renderedSaturation: config.renderSaturation,
     });
+    await logServer(
+      "info",
+      `Images recalculées pour ${PANELS[panelId].label}, saturation ${config.renderSaturation}.`,
+    );
     return NextResponse.json({ ok: true, renderedPanel: panelId });
   }
 
-  if (typeof body.base !== "string" || body.base.length === 0) {
-    return NextResponse.json({ error: "Base manquante" }, { status: 400 });
+  if (!isSafeBase(body.base)) {
+    return NextResponse.json({ error: "Base invalide" }, { status: 400 });
   }
 
   const { blobs } = await listCrops();

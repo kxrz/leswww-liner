@@ -1,6 +1,7 @@
 import { albumOfTheDay, saveAlbumRender } from "@/lib/album";
 import { composeAlbum } from "@/lib/compose";
 import { getConfig } from "@/lib/config";
+import { logServer } from "@/lib/journal";
 import { PANELS } from "@/lib/panels";
 import { DEFAULT_RENDER } from "@/lib/render";
 import { parsePlaylistId } from "@/lib/spotify";
@@ -84,6 +85,13 @@ async function handle(request: Request): Promise<NextResponse> {
       warning: warning ?? null,
     });
 
+    await logServer(
+      warning ? "warn" : "info",
+      warning
+        ? `Album du jour : ${album.name} — ${album.artist} (catalogue en cache, Spotify injoignable : ${warning})`
+        : `Album du jour : ${album.name} — ${album.artist}`,
+    );
+
     return NextResponse.json({
       ok: true,
       album: { id: album.id, name: album.name, artist: album.artist },
@@ -92,10 +100,9 @@ async function handle(request: Request): Promise<NextResponse> {
       warning: warning ?? null,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Échec du rendu" },
-      { status: 502 },
-    );
+    const message = error instanceof Error ? error.message : "Échec du rendu";
+    await logServer("error", `Album du jour indisponible : ${message}`);
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }
 

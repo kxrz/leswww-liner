@@ -1,3 +1,4 @@
+import { isSafeBase } from "@/lib/blob";
 import { getConfig } from "@/lib/config";
 import { PANELS } from "@/lib/panels";
 import { DEFAULT_RENDER, renderForPanel } from "@/lib/render";
@@ -20,12 +21,21 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
   }
 
+  // Le nom du fichier vient du navigateur : il construit deux chemins de blob,
+  // il ne peut donc pas être repris tel quel.
+  const baseName = baseNameWithoutExtension(file.name);
+
+  if (!isSafeBase(baseName)) {
+    return NextResponse.json({ error: "Nom de fichier invalide" }, { status: 400 });
+  }
+
   const [state, config] = await Promise.all([getState(), getConfig()]);
   const panel = PANELS[activePanel(state)];
 
-  const cropBlob = await put(`crops/${file.name}`, file, {
+  const cropBlob = await put(`crops/${baseName}.jpg`, file, {
     access: "public",
     allowOverwrite: true,
+    contentType: "image/jpeg",
   });
 
   const pngBuffer = await renderForPanel(
@@ -34,7 +44,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     { ...DEFAULT_RENDER, saturation: config.renderSaturation },
   );
 
-  const baseName = baseNameWithoutExtension(file.name);
   const displayBlob = await put(`display/${baseName}.png`, pngBuffer, {
     access: "public",
     allowOverwrite: true,

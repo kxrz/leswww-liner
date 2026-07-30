@@ -16,7 +16,13 @@ export interface AppConfig {
    * complets ; un aller-retour dans les réglages ne doit pas faire clignoter
    * l'écran en boucle. Contourné par « Afficher maintenant ».
    */
-  minRefreshMinutes: 0 | 5 | 15 | 30;
+  minRefreshMinutes: 0 | 5 | 15 | 30 | 60;
+  /**
+   * Intervalle entre deux sondages du Pi. Le cron tourne à la minute, mais le
+   * script s'arrête aussitôt si le dernier contact est plus récent que cette
+   * valeur : la cadence se règle donc depuis le site, sans toucher au crontab.
+   */
+  pollMinutes: 1 | 5 | 15 | 30;
   /**
    * Saturation appliquée avant dithering. 1.0 est le rendu le plus fidèle
    * (mesuré en ΔE) ; Pimoroni conseille de monter quand le résultat paraît
@@ -33,7 +39,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   rotation: "sequential",
   fixedImage: null,
   intervalHours: 4,
-  minRefreshMinutes: 5,
+  minRefreshMinutes: 15,
+  pollMinutes: 5,
   renderSaturation: 1,
   forceRefreshAt: 0,
 };
@@ -41,7 +48,8 @@ export const DEFAULT_CONFIG: AppConfig = {
 const CONFIG_PATH = "config/settings.json";
 
 const INTERVAL_HOURS: AppConfig["intervalHours"][] = [1, 2, 4, 8, 24];
-const MIN_REFRESH: AppConfig["minRefreshMinutes"][] = [0, 5, 15, 30];
+const MIN_REFRESH: AppConfig["minRefreshMinutes"][] = [0, 5, 15, 30, 60];
+const POLL_MINUTES: AppConfig["pollMinutes"][] = [1, 5, 15, 30];
 const SATURATIONS: AppConfig["renderSaturation"][] = [1, 1.15, 1.3];
 const ROTATION_MODES: RotationMode[] = ["sequential", "random", "fixed"];
 const MODES: DisplayMode[] = ["gallery", "album"];
@@ -56,6 +64,10 @@ function isInterval(value: unknown): value is AppConfig["intervalHours"] {
 
 function isMinRefresh(value: unknown): value is AppConfig["minRefreshMinutes"] {
   return MIN_REFRESH.includes(value as AppConfig["minRefreshMinutes"]);
+}
+
+function isPollMinutes(value: unknown): value is AppConfig["pollMinutes"] {
+  return POLL_MINUTES.includes(value as AppConfig["pollMinutes"]);
 }
 
 function isSaturation(value: unknown): value is AppConfig["renderSaturation"] {
@@ -88,6 +100,9 @@ function mergeConfig(partial: unknown): AppConfig {
     minRefreshMinutes: isMinRefresh(obj.minRefreshMinutes)
       ? obj.minRefreshMinutes
       : DEFAULT_CONFIG.minRefreshMinutes,
+    pollMinutes: isPollMinutes(obj.pollMinutes)
+      ? obj.pollMinutes
+      : DEFAULT_CONFIG.pollMinutes,
     renderSaturation: isSaturation(obj.renderSaturation)
       ? obj.renderSaturation
       : DEFAULT_CONFIG.renderSaturation,
@@ -117,6 +132,7 @@ export function isValidConfigInput(value: unknown): value is Omit<
     (obj.fixedImage === null || typeof obj.fixedImage === "string") &&
     isInterval(obj.intervalHours) &&
     isMinRefresh(obj.minRefreshMinutes) &&
+    isPollMinutes(obj.pollMinutes) &&
     isSaturation(obj.renderSaturation)
   );
 }

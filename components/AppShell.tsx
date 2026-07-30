@@ -12,6 +12,7 @@ const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
 ];
 
 type Props = {
+  authConfigured: boolean;
   ecran: ReactNode;
   bibliotheque: ReactNode;
   reglages: ReactNode;
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export default function AppShell({
+  authConfigured,
   ecran,
   bibliotheque,
   reglages,
@@ -82,8 +84,21 @@ export default function AppShell({
         ))}
       </main>
 
-      <footer className="mt-14 border-t border-line pt-4">
+      <footer className="mt-14 flex items-center justify-between gap-4 border-t border-line pt-4">
         <p className="font-mono text-xs text-fg-faint">{commit}</p>
+        {authConfigured ? (
+          <button
+            type="button"
+            onClick={() => {
+              void fetch("/api/login", { method: "DELETE" }).then(() => {
+                window.location.href = "/login";
+              });
+            }}
+            className="text-xs text-fg-muted underline underline-offset-2 hover:text-fg"
+          >
+            Se déconnecter
+          </button>
+        ) : null}
       </footer>
     </div>
   );

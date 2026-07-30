@@ -26,6 +26,14 @@ export interface PiState {
   renderedPanel: PanelId;
   /** Saturation avec laquelle les PNG de display/ ont été calculés. */
   renderedSaturation: number;
+  /**
+   * Nombre de rafraîchissements réels de la dalle depuis la mise en service.
+   * Une dalle e-ink a un nombre de cycles fini : on ne peut pas surveiller
+   * une usure qu'on ne compte pas.
+   */
+  refreshCount: number;
+  /** Premier contact du Pi, origine du compteur ci-dessus. */
+  firstSeenAt: number | null;
 }
 
 export const EMPTY_STATE: PiState = {
@@ -37,6 +45,8 @@ export const EMPTY_STATE: PiState = {
   lastError: null,
   renderedPanel: DEFAULT_PANEL,
   renderedSaturation: 1,
+  refreshCount: 0,
+  firstSeenAt: null,
 };
 
 const STATE_PATH = "state/pi.json";
@@ -78,6 +88,8 @@ export async function getState(): Promise<PiState> {
         ? obj.renderedPanel
         : DEFAULT_PANEL,
       renderedSaturation: numberOrNull(obj.renderedSaturation) ?? 1,
+      refreshCount: numberOrNull(obj.refreshCount) ?? 0,
+      firstSeenAt: numberOrNull(obj.firstSeenAt),
     };
   } catch {
     return EMPTY_STATE;

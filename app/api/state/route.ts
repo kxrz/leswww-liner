@@ -1,6 +1,6 @@
 import { getConfig } from "@/lib/config";
 import { resolveCurrent } from "@/lib/current";
-import { activePanel, getState } from "@/lib/state";
+import { getState } from "@/lib/state";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +22,9 @@ export async function GET(request: Request): Promise<NextResponse> {
     return NextResponse.json({
       refresh: false,
       revision: null,
-      reason: "no-images",
-      pollSeconds: 300,
+      reason: selection?.problem ? "not-ready" : "no-images",
+      detail: selection?.problem ?? null,
+      pollSeconds: config.pollMinutes * 60,
     });
   }
 
@@ -52,7 +53,9 @@ export async function GET(request: Request): Promise<NextResponse> {
     retryAfterSeconds: throttled
       ? Math.max(1, Math.ceil((minRefreshMs - sinceLast) / 1000))
       : 0,
-    expectedPanel: activePanel(state),
-    pollSeconds: 60,
+    // Délai avant le prochain sondage. Le cron du Pi tourne à la minute mais
+    // le script s'arrête aussitôt si ce délai n'est pas écoulé : la cadence se
+    // règle donc depuis le site, sans intervention sur le crontab.
+    pollSeconds: config.pollMinutes * 60,
   });
 }

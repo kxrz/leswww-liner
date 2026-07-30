@@ -24,6 +24,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       revision: null,
       reason: selection?.problem ? "not-ready" : "no-images",
       detail: selection?.problem ?? null,
+      pollSeconds: config.pollMinutes * 60,
     });
   }
 
@@ -49,10 +50,12 @@ export async function GET(request: Request): Promise<NextResponse> {
         : forced
           ? "forced"
           : "changed",
-    // Purement informatif, pour le diagnostic depuis un navigateur : le Pi
-    // se contente de `refresh`.
     retryAfterSeconds: throttled
       ? Math.max(1, Math.ceil((minRefreshMs - sinceLast) / 1000))
       : 0,
+    // Délai avant le prochain sondage. Le cron du Pi tourne à la minute mais
+    // le script s'arrête aussitôt si ce délai n'est pas écoulé : la cadence se
+    // règle donc depuis le site, sans intervention sur le crontab.
+    pollSeconds: config.pollMinutes * 60,
   });
 }

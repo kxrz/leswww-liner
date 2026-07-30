@@ -2,6 +2,7 @@
 
 import type { ScreenStatus } from "@/app/api/status/route";
 import { AlertIcon, CheckIcon, RefreshIcon } from "@/components/Icons";
+import JournalPanel from "@/components/JournalPanel";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
@@ -174,6 +175,12 @@ export default function ScreenPanel() {
 
   const { pi, current, next, nextChangeAt, staleRender, album, mode } = status;
   const { authConfigured } = status;
+
+  // Rythme d'usure observé, plus parlant qu'un total brut.
+  const days = pi.firstSeenAt
+    ? Math.max(1, (now - pi.firstSeenAt) / 86400000)
+    : null;
+  const perDay = days ? (pi.refreshCount / days).toFixed(1) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -360,8 +367,35 @@ export default function ScreenPanel() {
             <dt className="text-fg-muted">Images disponibles</dt>
             <dd className="text-right">{status.imageCount}</dd>
           </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-fg-muted">Cadence de sondage</dt>
+            <dd className="text-right">
+              {status.pollMinutes === 1
+                ? "chaque minute"
+                : `toutes les ${status.pollMinutes} min`}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-fg-muted">Cycles de la dalle</dt>
+            <dd className="text-right">
+              {pi.refreshCount}
+              {pi.firstSeenAt ? (
+                <span className="text-fg-muted">
+                  {" "}
+                  · {perDay} / jour
+                </span>
+              ) : null}
+            </dd>
+          </div>
         </dl>
+        <p className="sect-sub mt-3">
+          Une dalle e-ink a un nombre de cycles fini. Espacer les
+          rafraîchissements coûte peu et prolonge le matériel : le délai de
+          garde et l&apos;intervalle de rotation se règlent dans Réglages.
+        </p>
       </div>
+
+      <JournalPanel />
     </div>
   );
 }

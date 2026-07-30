@@ -15,7 +15,8 @@ type Props = {
 };
 
 const INTERVAL_OPTIONS: AppConfig["intervalHours"][] = [1, 2, 4, 8, 24];
-const MIN_REFRESH_OPTIONS: AppConfig["minRefreshMinutes"][] = [0, 5, 15, 30];
+const MIN_REFRESH_OPTIONS: AppConfig["minRefreshMinutes"][] = [0, 5, 15, 30, 60];
+const POLL_OPTIONS: AppConfig["pollMinutes"][] = [1, 5, 15, 30];
 
 const SATURATION_OPTIONS: {
   value: AppConfig["renderSaturation"];
@@ -59,6 +60,7 @@ export default function SettingsClient({ config, images }: Props) {
   const [renderSaturation, setRenderSaturation] = useState(
     config.renderSaturation,
   );
+  const [pollMinutes, setPollMinutes] = useState(config.pollMinutes);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +85,7 @@ export default function SettingsClient({ config, images }: Props) {
       fixedImage: rotation === "fixed" ? fixedImage || null : null,
       intervalHours,
       minRefreshMinutes,
+      pollMinutes,
       renderSaturation,
     };
 
@@ -251,27 +254,64 @@ export default function SettingsClient({ config, images }: Props) {
       </div>
 
       <div className="card p-6">
-        <p className="field-label">Délai minimal entre deux rafraîchissements</p>
+        <p className="field-label">Cadence et usure de la dalle</p>
         <p className="sect-sub mt-1">
-          Un cycle e-ink dure une trentaine de secondes. Ce délai évite que
-          plusieurs réglages d&apos;affilée ne fassent clignoter l&apos;écran.
-          Le bouton « Afficher maintenant » passe outre.
+          Une dalle e-ink supporte un nombre fini de rafraîchissements, et un
+          cycle dure une trentaine de secondes. Ces deux réglages sont là pour
+          la ménager.
         </p>
-        <div className="mt-3 inline-flex rounded-lg border border-line p-0.5">
-          {MIN_REFRESH_OPTIONS.map((minutes) => (
-            <button
-              key={minutes}
-              type="button"
-              onClick={() => setMinRefreshMinutes(minutes)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
-                minRefreshMinutes === minutes
-                  ? "bg-fg text-white"
-                  : "text-fg-muted hover:text-fg"
-              }`}
-            >
-              {minutes === 0 ? "Aucun" : `${minutes} min`}
-            </button>
-          ))}
+
+        <div className="mt-4">
+          <p className="field-label">Le Pi vérifie</p>
+          <div className="mt-2 inline-flex rounded-lg border border-line p-0.5">
+            {POLL_OPTIONS.map((minutes) => (
+              <button
+                key={minutes}
+                type="button"
+                onClick={() => setPollMinutes(minutes)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                  pollMinutes === minutes
+                    ? "bg-fg text-white"
+                    : "text-fg-muted hover:text-fg"
+                }`}
+              >
+                {minutes === 1 ? "chaque min" : `${minutes} min`}
+              </button>
+            ))}
+          </div>
+          <p className="sect-sub mt-2">
+            Détermine le délai entre un changement fait ici et sa prise en
+            compte à l&apos;écran. Un sondage ne coûte que quelques centaines
+            d&apos;octets et n&apos;allume pas la dalle, mais inutile
+            d&apos;interroger plus souvent que nécessaire. Aucune manipulation
+            sur le Pi : la valeur lui est transmise.
+          </p>
+        </div>
+
+        <div className="mt-5">
+          <p className="field-label">Délai minimal entre deux rafraîchissements</p>
+          <div className="mt-2 inline-flex flex-wrap rounded-lg border border-line p-0.5">
+            {MIN_REFRESH_OPTIONS.map((minutes) => (
+              <button
+                key={minutes}
+                type="button"
+                onClick={() => setMinRefreshMinutes(minutes)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                  minRefreshMinutes === minutes
+                    ? "bg-fg text-white"
+                    : "text-fg-muted hover:text-fg"
+                }`}
+              >
+                {minutes === 0 ? "Aucun" : `${minutes} min`}
+              </button>
+            ))}
+          </div>
+          <p className="sect-sub mt-2">
+            Garde-fou contre les rafraîchissements rapprochés. Pimoroni situe
+            un cycle complet entre 20 et 35 s et conseille de les espacer. Le
+            bouton « Afficher maintenant » passe outre. Le compteur de cycles
+            est visible dans l&apos;onglet Écran.
+          </p>
         </div>
       </div>
 

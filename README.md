@@ -19,9 +19,10 @@ demander s'il y a un changement à appliquer.
    rotation). À la validation, `/api/store-display` écrit `crops/<base>.jpg` et
    `display/<base>.png`, le rendu 800×480 pré-dithé pour la dalle, puis affiche
    un aperçu fidèle de ce que l'écran montrera.
-3. **Synchronisation** : le Pi appelle `/api/state` chaque minute. Tant que rien
-   ne change, la réponse fait quelques centaines d'octets et l'écran ne bouge
-   pas. Dès qu'elle annonce un changement, il récupère le PNG et rafraîchit.
+3. **Synchronisation** : le Pi appelle `/api/state` à la cadence fixée depuis
+   le site (5 min par défaut). Tant que rien ne change, la réponse fait
+   quelques centaines d'octets et l'écran ne bouge pas. Dès qu'elle annonce un
+   changement, il récupère le PNG et rafraîchit.
 
 La configuration (mode, rotation, intervalle, saturation, délai de garde) est
 persistée en JSON dans le Blob : pas de base de données.
@@ -58,11 +59,13 @@ chaque lettre d'un liseré coloré.
 
 | Endpoint | Appelé par | Rôle |
 |---|---|---|
-| `GET /api/state` | Pi, chaque minute | Faut-il rafraîchir ? |
+| `GET /api/state` | Pi, à la cadence réglée | Faut-il rafraîchir ? Et à quelle cadence revenir. |
 | `GET /api/next-image` | Pi, si oui | PNG 800×480 prêt à afficher |
-| `POST /api/heartbeat` | Pi | Dalle détectée, révision affichée, erreurs |
+| `POST /api/heartbeat` | Pi | Dalle détectée, révision affichée, erreurs, événements |
 | `GET /api/status` | site | État complet de l'onglet Écran |
+| `GET /api/journal` | site | Journal, chargé à la demande |
 | `POST /api/force-refresh` | site | « Afficher maintenant » |
+| `GET/POST /api/album/refresh` | cron + site | Calcule l'album du jour |
 
 La `revision` est un hachage de `pathname + uploadedAt + forceRefreshAt` : elle
 change quand l'image du moment change, quand un re-cadrage écrase le blob à URL
@@ -106,23 +109,34 @@ npm run dev
 Créer un `.env.local` à partir de `.env.local.example`. Seul
 `BLOB_READ_WRITE_TOKEN` est nécessaire pour la galerie.
 
-**Mise en production, variables d'environnement et configuration du Pi :
-voir [DEPLOIEMENT.md](DEPLOIEMENT.md)**, qui détaille quoi ajouter, où et
-pourquoi.
+**Installation pas à pas : [INSTALLATION.md](INSTALLATION.md).**
+**Référence des variables d'environnement : [DEPLOIEMENT.md](DEPLOIEMENT.md).**
 
 ## Côté Raspberry Pi
 
 Le script `pi/update_display.py` (dépendances : `requests`, `pillow`, `inky`)
-s'exécute via cron, **toutes les minutes** :
+s'exécute via cron, réveillé chaque minute :
 
 ```cron
 * * * * * /usr/bin/python3 /home/pi/update_display.py
 ```
 
-Il mémorise la révision affichée dans `~/.tekpi-state.json` et n'allume la dalle
-que si le serveur annonce un changement. Il ne se signale pas à chaque sondage :
-seulement après un rafraîchissement, une erreur, ou toutes les dix minutes. Les
-erreurs sont journalisées dans `~/tekpi.log`.
+Le cron ne fait que réveiller le script : celui-ci s'arrête aussitôt si la
+cadence dictée par le serveur n'est pas écoulée. **Régler la fréquence depuis
+le site ne demande donc aucune intervention sur le Pi.**
+
+Il mémorise la révision affichée dans `~/.tekpi-state.json` et n'allume la
+dalle que si le serveur annonce un changement. Ses événements sont journalisés
+dans `~/tekpi.log` et remontés au site avec le heartbeat, consultables dans
+l'onglet Écran sans passer par SSH.
+
+## Usure de la dalle
+
+Une dalle e-ink couleur supporte un nombre fini de cycles, et un cycle dure 20
+à 35 s. Trois réglages la ménagent, tous côté site : l'intervalle de rotation,
+le délai minimal entre deux rafraîchissements (15 min par défaut), et la
+cadence de sondage. L'onglet Écran affiche le nombre de cycles cumulés et la
+moyenne par jour. Un sondage sans changement n'allume pas la dalle.
 
 ## Accès
 

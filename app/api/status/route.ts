@@ -16,6 +16,8 @@ export interface ScreenStatus {
   authConfigured: boolean;
   mode: "gallery" | "album";
   imageCount: number;
+  /** Cadence de sondage du Pi, en minutes. */
+  pollMinutes: number;
   current: {
     kind: "gallery" | "album";
     label: string;
@@ -38,6 +40,9 @@ export interface ScreenStatus {
     inSync: boolean;
     lastRefreshAt: number | null;
     lastError: string | null;
+    /** Rafraîchissements cumulés depuis la mise en service. */
+    refreshCount: number;
+    firstSeenAt: number | null;
   };
   staleRender: {
     reason: string;
@@ -80,6 +85,7 @@ export async function GET(): Promise<NextResponse<ScreenStatus>> {
     authConfigured: isAuthConfigured(),
     mode: config.mode,
     imageCount: display.length,
+    pollMinutes: config.pollMinutes,
     current: current
       ? {
           kind: current.kind,
@@ -112,6 +118,8 @@ export async function GET(): Promise<NextResponse<ScreenStatus>> {
       inSync: current !== null && state.displayedRevision === current.revision,
       lastRefreshAt: state.lastRefreshAt,
       lastError: state.lastError,
+      refreshCount: state.refreshCount,
+      firstSeenAt: state.firstSeenAt,
     },
     staleRender:
       panelChanged || saturationChanged

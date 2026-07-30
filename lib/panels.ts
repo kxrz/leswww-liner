@@ -91,7 +91,13 @@ export const PANELS: Record<PanelId, PanelSpec> = {
   },
 };
 
-export const DEFAULT_PANEL: PanelId = "acep7";
+/**
+ * Dalle supposée avant le premier heartbeat. Le matériel en service est un
+ * Inky Impression 7.3" 2025 Edition, donc Spectra 6 : partir de là évite de
+ * calculer les premières images avec un orange que la dalle n'affiche pas.
+ * Le Pi corrige de toute façon dès son premier contact.
+ */
+export const DEFAULT_PANEL: PanelId = "spectra6";
 
 export function isPanelId(value: unknown): value is PanelId {
   return value === "acep7" || value === "spectra6";

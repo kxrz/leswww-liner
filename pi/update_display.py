@@ -2,9 +2,12 @@
 """Synchronise le cadre e-ink avec tekpi.
 
 Le Pi ne décide de rien : il demande au serveur s'il y a un changement à
-appliquer, et n'allume la dalle que si la réponse est oui. Un sondage sans
-changement ne coûte qu'une requête HTTP de quelques centaines d'octets, ce qui
-permet de tourner toutes les minutes.
+appliquer, et n'allume la dalle que si la réponse est oui.
+
+Le cron tourne toutes les minutes, mais la cadence réelle de sondage est
+dictée par le serveur (`pollSeconds`) : le script s'arrête aussitôt si le
+délai n'est pas écoulé. Régler la fréquence depuis le site ne demande donc
+aucune intervention sur le crontab.
 
 Installation (cron, toutes les minutes) :
 
@@ -25,6 +28,7 @@ BASE_URL = "https://tekpi-eink.vercel.app"
 # Doit correspondre à DEVICE_TOKEN côté Vercel. Laisser vide si le site n'est
 # pas protégé : le serveur laisse alors passer sans jeton.
 DEVICE_TOKEN = ""
+
 STATE_FILE = Path.home() / ".tekpi-state.json"
 LOG_FILE = Path.home() / "tekpi.log"
 TIMEOUT = 45
@@ -34,14 +38,29 @@ TIMEOUT = 45
 # retrouve alors à l'identique et se contente de les indexer, sans re-dithérer.
 PANEL_SATURATION = 0.5
 
-# On ne se signale pas à chaque sondage : inutile d'écrire dans le Blob toutes
-# les minutes. Après un rafraîchissement, une erreur, ou ce délai.
+# Cadence de repli, si le serveur est injoignable et n'a donc rien pu dicter.
+FALLBACK_POLL_SECONDS = 300
+
+# On ne se signale pas à chaque sondage : inutile d'écrire dans le Blob à
+# chaque passage. Après un rafraîchissement, une erreur, ou ce délai.
 HEARTBEAT_INTERVAL_SECONDS = 600
 
+# Événements du cycle courant, remontés au serveur avec le heartbeat pour
+# être consultables depuis le site.
+EVENTS: list[dict] = []
 
-def log(message: str) -> None:
-    with open(LOG_FILE, "a", encoding="utf-8") as handle:
-        handle.write(f"{datetime.now().isoformat(timespec='seconds')} {message}\n")
+
+def log(level: str, message: str) -> None:
+    """Journalise localement et prépare la remontée vers le site."""
+    stamp = datetime.now()
+    EVENTS.append(
+        {"at": int(stamp.timestamp() * 1000), "level": level, "message": message}
+    )
+    try:
+        with open(LOG_FILE, "a", encoding="utf-8") as handle:
+            handle.write(f"{stamp.isoformat(timespec='seconds')} [{level}] {message}\n")
+    except OSError:
+        pass
 
 
 def load_state() -> dict:
@@ -63,8 +82,7 @@ def auth_headers() -> dict:
     return {"X-Tekpi-Token": DEVICE_TOKEN} if DEVICE_TOKEN else {}
 
 
-def send_heartbeat(driver: str | None, revision: str | None,
-                   refreshed: bool, error: str | None = None) -> None:
+def send_heartbeat(driver, revision, refreshed: bool, error=None) -> None:
     try:
         requests.post(
             f"{BASE_URL}/api/heartbeat",
@@ -74,16 +92,32 @@ def send_heartbeat(driver: str | None, revision: str | None,
                 "revision": revision,
                 "refreshed": refreshed,
                 "error": error,
+                "events": EVENTS,
             },
             timeout=TIMEOUT,
         )
     except Exception as exc:
-        log(f"heartbeat échoué: {exc}")
+        # Pas de log() ici : l'événement ne partirait nulle part.
+        try:
+            with open(LOG_FILE, "a", encoding="utf-8") as handle:
+                handle.write(
+                    f"{datetime.now().isoformat(timespec='seconds')} [error] "
+                    f"heartbeat échoué: {exc}\n"
+                )
+        except OSError:
+            pass
 
 
 def main() -> int:
     state = load_state()
     driver = state.get("driver")
+
+    # Cadence dictée au sondage précédent : on n'interroge pas le serveur avant.
+    poll_seconds = state.get("pollSeconds", FALLBACK_POLL_SECONDS)
+    since_last_poll = now_seconds() - state.get("polledAt", 0)
+
+    if since_last_poll < poll_seconds:
+        return 0
 
     response = requests.get(
         f"{BASE_URL}/api/state",
@@ -94,15 +128,21 @@ def main() -> int:
     response.raise_for_status()
     decision = response.json()
 
+    state["polledAt"] = now_seconds()
+    state["pollSeconds"] = decision.get("pollSeconds", FALLBACK_POLL_SECONDS)
+
     heartbeat_due = (
         now_seconds() - state.get("heartbeatAt", 0) > HEARTBEAT_INTERVAL_SECONDS
     )
 
     if not decision.get("refresh"):
         if heartbeat_due:
+            reason = decision.get("reason")
+            if reason not in ("up-to-date", None):
+                log("info", f"Sondage : {reason}")
             send_heartbeat(driver, state.get("revision"), refreshed=False)
             state["heartbeatAt"] = now_seconds()
-            save_state(state)
+        save_state(state)
         return 0
 
     image_response = requests.get(
@@ -126,13 +166,17 @@ def main() -> int:
     display.show()
 
     revision = decision.get("revision")
-    save_state({
-        "revision": revision,
-        "driver": driver,
-        "heartbeatAt": now_seconds(),
-    })
+    log("info", f"Écran rafraîchi ({decision.get('reason')}) sur {driver}.")
+
+    state.update(
+        {
+            "revision": revision,
+            "driver": driver,
+            "heartbeatAt": now_seconds(),
+        }
+    )
+    save_state(state)
     send_heartbeat(driver, revision, refreshed=True)
-    log(f"affiché {revision} ({decision.get('reason')}) sur {driver}")
     return 0
 
 
@@ -140,10 +184,12 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except Exception as exc:
-        log(f"erreur: {exc}")
+        log("error", str(exc))
         cached = load_state()
         send_heartbeat(
-            cached.get("driver"), cached.get("revision"),
-            refreshed=False, error=str(exc),
+            cached.get("driver"),
+            cached.get("revision"),
+            refreshed=False,
+            error=str(exc),
         )
         sys.exit(1)

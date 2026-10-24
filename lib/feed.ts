@@ -1,6 +1,6 @@
 export type Item = { guid: string; link: string; title: string; artist: string; album: boolean; cover?: string };
 
-const FEED = "https://www.320kbps.club/feed.xml";
+import { SITE_FEED } from "./sources";
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
@@ -14,9 +14,9 @@ function tag(block: string, name: string): string {
   return decode(block.match(new RegExp(`<${name}>([\\s\\S]*?)</${name}>`))?.[1].trim() ?? "");
 }
 
-/** Tracks and albums from the feed, newest first (playlists are left out). */
-export async function getItems(): Promise<Item[]> {
-  const xml = await fetch(FEED, { next: { revalidate: 600 } }).then((r) => r.text());
+/** Tracks and albums from a feed, newest first (playlists are left out). */
+export async function getItems(feed: string = SITE_FEED.url): Promise<Item[]> {
+  const xml = await fetch(feed, { next: { revalidate: 600 } }).then((r) => r.text());
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)]
     .map(([, block]) => {
       const raw = tag(block, "title");

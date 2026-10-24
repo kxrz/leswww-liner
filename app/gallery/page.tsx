@@ -56,13 +56,14 @@ export default async function Gallery() {
                 </a>
                 <div>
                   <p className="track-artist">{h.artist}</p>
-                  <p className="track-title">{h.title}</p>
+                  <a href={h.guid} className="track-title">{h.title}</a>
                   <p className="label">{[h.place, h.at && date.format(new Date(h.at))].filter(Boolean).join(" · ")}</p>
                 </div>
                 <div className="downloads">
                   {p.hd && <a href={p.hd.downloadUrl} className="btn small">4K ↓</a>}
                   {p.eink && <a href={p.eink.downloadUrl} className="btn secondary small">E-ink ↓</a>}
                   {p.bw && <a href={p.bw.downloadUrl} className="btn secondary small">B&amp;W ↓</a>}
+                  <a href={h.guid} className="btn secondary small">Listen on 320kbps.club →</a>
                 </div>
               </li>
             );

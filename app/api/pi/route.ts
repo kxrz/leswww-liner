@@ -1,12 +1,14 @@
 import { isDevice } from "@/lib/auth";
-import { addToGallery, readCommand, slug, writeStatus, type Status } from "@/lib/store";
+import { SITE_FEED } from "@/lib/sources";
+import { addToGallery, readCommand, readSettings, slug, writeStatus, type Status } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-/** The frame asks whether there is anything to do. */
+/** The frame asks whether there is anything to do, and which feed to follow. */
 export async function GET(request: Request) {
   if (!isDevice(request)) return new Response("Unauthorized", { status: 401 });
-  return Response.json((await readCommand()) ?? { id: 0, action: "none" });
+  const [command, settings] = await Promise.all([readCommand(), readSettings()]);
+  return Response.json({ id: 0, action: "none", ...command, feed: settings?.feed ?? SITE_FEED.url });
 }
 
 /** The frame reports what it just drew. */

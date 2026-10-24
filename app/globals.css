@@ -954,6 +954,31 @@ form.actions .btn {
   border-bottom: 4px solid var(--ink);
 }
 
+.source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.source input {
+  flex-basis: 100%;
+}
+
+.source input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+.source-note {
+  margin-top: 0.6rem;
+}
+
 .tracks {
   list-style: none;
   padding: 0;

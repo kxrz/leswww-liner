@@ -51,6 +51,12 @@ export const writeCommand = (c: Command) => write(COMMAND, c);
 export const readStatus = () => read<Status>(STATUS);
 export const writeStatus = (s: Status) => write(STATUS, s);
 
+/** What the owner chose in the control room: which feed the frame follows. */
+export type Settings = { feed: string; feedLabel: string };
+const SETTINGS = "liner/settings.json";
+export const readSettings = () => read<Settings>(SETTINGS);
+export const writeSettings = (s: Settings) => write(SETTINGS, s);
+
 /** Everything that has hung on the wall, newest first: the public gallery's index. */
 export type Hung = { slug: string; guid: string; title: string; artist: string; place?: string; at: string };
 const GALLERY = "liner/gallery.json";

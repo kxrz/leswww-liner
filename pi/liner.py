@@ -9,6 +9,8 @@ Pimoroni Inky Impression 7.3" (Spectra 6), 800x480.
   python3 liner.py --preview  draw preview.png only, leave the screen alone
 
 LINER_URL and LINER_TOKEN (liner.env) link the frame to its web page; without them it runs on its own, without maps.
+LINER_FEED sets the RSS feed to follow by default (the control room can switch it), LINER_VISIBLE the part of the
+panel your frame's mat leaves visible ("x0,y0,x1,y1", measure it with calibrate.py).
 """
 import fcntl
 import html
@@ -30,12 +32,14 @@ HERE = Path(__file__).resolve().parent
 STATE = HERE / "state.json"
 URL = os.environ.get("LINER_URL", "").rstrip("/")
 AUTH = {"Authorization": f"Bearer {os.environ.get('LINER_TOKEN', '')}"}
-FEED = "https://www.320kbps.club/feed.xml"
+FEED = os.environ.get("LINER_FEED", "https://www.320kbps.club/feed.xml")
 MEDIA = "{http://search.yahoo.com/mrss/}content"
+ITUNES = "{http://www.itunes.com/dtds/podcast-1.0.dtd}"
+DC = "{http://purl.org/dc/elements/1.1/}"
 
 W, H = 800, 480
 # The part of the panel the frame's mat leaves visible (measured with a test grid), then an inner margin
-VISIBLE = (52, 35, 748, 480)
+VISIBLE = tuple(int(v) for v in os.environ.get("LINER_VISIBLE", "52,35,748,480").split(","))
 L, T, R, B = VISIBLE[0] + 20, VISIBLE[1] + 16, VISIBLE[2] - 20, VISIBLE[3] - 16
 # Palette order the inky library expects (six pure inks, so it does not dither again)
 PALETTE = [0, 0, 0, 255, 255, 255, 255, 255, 0, 255, 0, 0, 0, 0, 255, 0, 255, 0]
@@ -61,9 +65,9 @@ def mono(size, bold=False):
 
 # --- Data ------------------------------------------------------------------
 
-def pick_item(seen, guid=None):
+def pick_item(seen, guid=None, feed=FEED):
     """The requested track, otherwise the newest one not shown yet (starting over once all have been shown)."""
-    root = ET.fromstring(requests.get(FEED, timeout=20).content)
+    root = ET.fromstring(requests.get(feed, timeout=20).content)
     items = [i for i in root.iter("item") if "/playlist/" not in i.findtext("link")]
     item = next((i for i in items if i.findtext("guid") == guid), None) if guid else None
     if item is None:
@@ -75,6 +79,9 @@ def pick_item(seen, guid=None):
     raw = item.findtext("title")
     is_album = raw.startswith("New album: ")
     artist, _, title = raw.removeprefix("New album: ").partition(" — ")
+    if not title:  # another feed's title: no "Artist — Title", so the artist comes from the author fields
+        title = artist
+        artist = item.findtext(f"{ITUNES}author") or item.findtext(f"{DC}creator") or item.findtext("author") or ""
     blocks = [b.strip() for b in item.findtext("description", "").split("\n\n") if b.strip()]
     info = {"kind": "track", "album": "", "year": "", "label": "", "country": ""}
     if is_album:  # "Bitter Better - EP"; the description is an editorial text
@@ -82,7 +89,7 @@ def pick_item(seen, guid=None):
         title = name or title
         info["kind"] = fmt.lower() if name else "album"
         info.update(album_page(item.findtext("link")))
-    elif blocks:  # "Album - Single — 2021", "Label: …", "Country — Active since …"
+    elif blocks and "320kbps.club" in item.findtext("link", ""):  # "Album - Single — 2021", "Label: …", "Country — …"
         head, _, year = blocks[0].rpartition(" — ")
         if not re.fullmatch(r"\d{4}", year):
             head, year = blocks[0], ""
@@ -96,11 +103,15 @@ def pick_item(seen, guid=None):
                 info["label"] = b.removeprefix("Label: ")
             elif len(b) < 60:
                 info["country"] = b.split(" — ")[0]
-    media = item.find(MEDIA)
+    image = item.find(MEDIA)
+    if image is None:  # other feeds: an image enclosure, or an iTunes image
+        image = next((e for e in item.iter("enclosure") if e.get("type", "").startswith("image/")), None)
+    if image is None:
+        image = item.find(f"{ITUNES}image")
+    cover = image.get("url") or image.get("href") if image is not None else None
     return {
-        "guid": item.findtext("guid"), "link": item.findtext("link"),
-        "artist": artist, "title": title or artist, **info,
-        "cover": media.get("url") if media is not None else None,
+        "guid": item.findtext("guid") or item.findtext("link"), "link": item.findtext("link"),
+        "artist": artist, "title": title or artist, **info, "cover": cover,
     }
 
 
@@ -298,7 +309,7 @@ def load_state():
 def show(guid=None, command=0):
     state = load_state()
     seen = state.get("seen", [])
-    item = pick_item(seen, guid)
+    item = pick_item(seen, guid, state.get("feed", FEED))
     now = datetime.now()
     raw = fetch_cover(item["cover"])
     img = render(item, now, "eink", raw)
@@ -365,6 +376,10 @@ def sync():
     r.raise_for_status()
     cmd = r.json()
     state = load_state()
+    if cmd.get("feed") and cmd["feed"] != state.get("feed"):  # chosen in the control room
+        state["feed"] = cmd["feed"]
+        STATE.write_text(json.dumps(state))
+        print(f"Following {cmd['feed']}")
     if cmd.get("id", 0) <= state.get("command", 0):
         return
     print(f"Request: {cmd['action']}")

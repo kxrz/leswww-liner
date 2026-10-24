@@ -62,7 +62,6 @@ The page draws the maps, relays requests from your phone, keeps the pictures and
    | `SITE_PASSWORD` | Password for the control room |
    | `DEVICE_TOKEN` | A long random string: `openssl rand -hex 24` |
    | `NEXT_PUBLIC_LINER_VISIBLE` | Your visible area, same as `LINER_VISIBLE` |
-   | `RESEND_API_KEY`, `ALERT_EMAIL`, `ALERT_FROM` | Optional: an email when the frame goes silent |
 
 4. On the Pi, add the page to `liner.env`, then reinstall to turn on the sync:
 

@@ -9,7 +9,7 @@ export const revalidate = 600;
 export const metadata: Metadata = {
   title: "Gallery: free 4K music wallpapers",
   description:
-    "Every track that has hung on Liner, the LesWWW e-ink frame: free 4K wallpapers, e-ink and black and white versions, each with a map of where the artist comes from. Music from 320kbps.club.",
+    "A selection of tracks that hung on Liner, the LesWWW e-ink frame: free 4K wallpapers, e-ink and black and white versions, each with a map of where the artist comes from. Music from 320kbps.club.",
   alternates: { canonical: "/gallery" },
 };
 
@@ -36,14 +36,14 @@ export default async function Gallery() {
         <section className="hero compact">
           <div className="hero-tags">
             <span className="tag tag-live">Gallery</span>
-            <span className="label">{entries.length} tracks · free to download</span>
+            <span className="label">A selection · {entries.length} tracks · free to download</span>
           </div>
           <h1>
-            Everything that hung on the wall, <mark>as wallpapers.</mark>
+            A selection from the wall, <mark>as wallpapers.</mark>
           </h1>
           <p className="lede">
-            Each track Liner has shown, in three versions: a 4K wallpaper, the colour e-ink picture and its black and
-            white twin. Music picked on <a href="https://www.320kbps.club">320kbps.club</a>.
+            Some of the tracks Liner has shown, in three versions: a 4K wallpaper, the colour e-ink picture and its
+            black and white twin. Hundreds more are waiting on <a href="https://www.320kbps.club">320kbps.club</a>.
           </p>
         </section>
 
@@ -66,6 +66,15 @@ export default async function Gallery() {
             };
           })}
         />
+        <section className="block">
+          <div className="cta">
+            <h2>This is only a selection.</h2>
+            <p>Every track on the wall comes from 320kbps.club, where hundreds more are picked by hand, one at a time.</p>
+            <div className="actions">
+              <a href="https://www.320kbps.club" className="btn accent">Listen to more on 320kbps.club →</a>
+            </div>
+          </div>
+        </section>
       </main>
       <Footer />
     </>

@@ -15,8 +15,8 @@ A new track every morning and evening, and a small web page to change it from yo
 
 ## Gallery
 
-Fifteen tracks as Liner drew them. Click one to listen on 320kbps.club; every picture, with its 4K wallpaper and
-black and white versions, is on [liner.leswww.com/gallery](https://liner.leswww.com/gallery).
+A selection of fifteen tracks, as Liner drew them. Click one to listen on 320kbps.club; more pictures, with their
+4K wallpaper and black and white versions, are on [liner.leswww.com/gallery](https://liner.leswww.com/gallery).
 
 <table>
 <tr><td width="33%"><a href="https://www.320kbps.club/track/thomas-bangalter-mythologies-xix-circonvolutions-remix"><img src="docs/gallery/thomas-bangalter-mythologies-xix-circonvolutions-remix.png" alt="Thomas Bangalter — Mythologies: XIX. Circonvolutions (Remix) on Liner"></a><br><sub><a href="https://www.320kbps.club/track/thomas-bangalter-mythologies-xix-circonvolutions-remix">Thomas Bangalter — Mythologies: XIX. Circonvolutions (Remix)</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/balthazar-linger-on-sand-castle-tapes-version"><img src="docs/gallery/balthazar-linger-on-sand-castle-tapes-version.png" alt="Balthazar — Linger On (Sand Castle Tapes version) on Liner"></a><br><sub><a href="https://www.320kbps.club/track/balthazar-linger-on-sand-castle-tapes-version">Balthazar — Linger On (Sand Castle Tapes version)</a></sub></td><td width="33%"><a href="https://www.320kbps.club/album/magugu-le-motel-bitter-better-ep"><img src="docs/gallery/magugu-le-motel-bitter-better-ep.png" alt="Magugu & Le Motel — Bitter Better - EP on Liner"></a><br><sub><a href="https://www.320kbps.club/album/magugu-le-motel-bitter-better-ep">Magugu & Le Motel — Bitter Better - EP</a></sub></td></tr>
@@ -25,6 +25,8 @@ black and white versions, is on [liner.leswww.com/gallery](https://liner.leswww.
 <tr><td width="33%"><a href="https://www.320kbps.club/track/manchester-orchestra-i-know-how-to-speak-acoustic-version"><img src="docs/gallery/manchester-orchestra-i-know-how-to-speak-acoustic-version.png" alt="Manchester Orchestra — I Know How to Speak (Acoustic Version) on Liner"></a><br><sub><a href="https://www.320kbps.club/track/manchester-orchestra-i-know-how-to-speak-acoustic-version">Manchester Orchestra — I Know How to Speak (Acoustic Version)</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/cheese-people-wake-up"><img src="docs/gallery/cheese-people-wake-up.png" alt="Cheese People — Wake Up on Liner"></a><br><sub><a href="https://www.320kbps.club/track/cheese-people-wake-up">Cheese People — Wake Up</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/dave-grohl-joshua-homme-trent-reznor-mantra"><img src="docs/gallery/dave-grohl-joshua-homme-trent-reznor-mantra.png" alt="Dave Grohl, Joshua Homme & Trent Reznor — Mantra on Liner"></a><br><sub><a href="https://www.320kbps.club/track/dave-grohl-joshua-homme-trent-reznor-mantra">Dave Grohl, Joshua Homme & Trent Reznor — Mantra</a></sub></td></tr>
 <tr><td width="33%"><a href="https://www.320kbps.club/track/omar-rodriguez-lopez-through-a-glass-darkly"><img src="docs/gallery/omar-rodriguez-lopez-through-a-glass-darkly.png" alt="Omar Rodriguez-Lopez — Through A Glass Darkly on Liner"></a><br><sub><a href="https://www.320kbps.club/track/omar-rodriguez-lopez-through-a-glass-darkly">Omar Rodriguez-Lopez — Through A Glass Darkly</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/synapson-bonga-mona-ki-ngi-xica"><img src="docs/gallery/synapson-bonga-mona-ki-ngi-xica.png" alt="Synapson & Bonga — Mona Ki Ngi Xica on Liner"></a><br><sub><a href="https://www.320kbps.club/track/synapson-bonga-mona-ki-ngi-xica">Synapson & Bonga — Mona Ki Ngi Xica</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/degiheugi-la-fine-equipe-favelas-la-fine-equipe-remix"><img src="docs/gallery/degiheugi-la-fine-equipe-favelas-la-fine-equipe-remix.png" alt="Degiheugi & La fine équipe — Favelas (La Fine Equipe Remix) on Liner"></a><br><sub><a href="https://www.320kbps.club/track/degiheugi-la-fine-equipe-favelas-la-fine-equipe-remix">Degiheugi & La fine équipe — Favelas (La Fine Equipe Remix)</a></sub></td></tr>
 </table>
+
+**[Listen to more on 320kbps.club →](https://www.320kbps.club)**
 
 ## What is on the wall
 
@@ -135,8 +137,6 @@ The Vercel project (`leswww-liner`, served at [liner.leswww.com](https://liner.l
 | `SITE_PASSWORD` | Password for the page. Without it, the page is open to anyone |
 | `DEVICE_TOKEN` | The frame's token, same as `LINER_TOKEN` in `pi/liner.env`. Without it, `/api/pi` and `/api/map` are open |
 | `NEXT_PUBLIC_LINER_VISIBLE` | Your frame's visible area for the mockup, as in `LINER_VISIBLE` (default `52,35,748,480`) |
-| `RESEND_API_KEY`, `ALERT_EMAIL`, `ALERT_FROM` | Optional: a daily email when the frame has been silent for two hours |
-| `CRON_SECRET` | Optional: lets only Vercel's cron call the health check |
 
 On a phone, "Add to Home Screen" turns the page into a small app. Locally: `npm install && npm run dev`, with a
 `.env.local` (see `.env.example`).

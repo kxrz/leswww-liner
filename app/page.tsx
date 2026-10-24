@@ -117,7 +117,7 @@ export default async function Home() {
               <p>The HD drawing, 3840 × 2160, in the tones of the panel. A new one every time the frame changes.</p>
               <div className="actions tight">
                 <a href={art.hdDownload} className="btn">Today&apos;s 4K wallpaper ↓</a>
-                <Link href="/gallery" className="btn secondary">All wallpapers →</Link>
+                <Link href="/gallery" className="btn secondary">More wallpapers →</Link>
               </div>
             </div>
           </div>

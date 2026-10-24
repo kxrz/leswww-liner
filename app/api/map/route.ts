@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   }
 
   const map = await renderMap({ origin, artist }, w, h, { x0, y0, x1, y1 }, bg, ink);
-  if (!map) return new Response("Not found", { status: 404, headers: { "Cache-Control": "public, s-maxage=86400" } });
+  if (!map) return new Response("Not found", { status: 404, headers: { "Cache-Control": "public, s-maxage=600" } });
   return new Response(new Uint8Array(map.png), {
     headers: {
       "Content-Type": "image/png",

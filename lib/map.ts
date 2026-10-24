@@ -44,7 +44,12 @@ async function locate(origin: string): Promise<Place | null> {
 async function artistOrigin(artist: string): Promise<string | null> {
   for (const name of [artist, ...artist.split(/\s*(?:&|,| feat\.? | x )\s*/i)]) {
     const url = `https://musicbrainz.org/ws/2/artist?fmt=json&limit=1&query=${encodeURIComponent(`artist:"${name}"`)}`;
-    const res = await fetch(url, { headers: UA, next: { revalidate: MONTH } });
+    let res = await fetch(url, { headers: UA, next: { revalidate: MONTH } });
+    if (res.status === 503) {
+      // MusicBrainz limite à une requête par seconde et répond « occupé » au-delà : on retente une fois
+      await new Promise((r) => setTimeout(r, 1200));
+      res = await fetch(url, { headers: UA, cache: "no-store" });
+    }
     if (!res.ok) continue;
     const [a] = ((await res.json()) as { artists?: { score: number; country?: string; area?: { name: string }; "begin-area"?: { name: string } }[] }).artists ?? [];
     if (!a || a.score < 90) continue;

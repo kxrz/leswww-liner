@@ -18,16 +18,18 @@ export default async function Control({ searchParams }: { searchParams: Promise<
         <Nav control />
         <main className="wrap narrow">
           <section className="hero compact">
-            <p className="eyebrow">Control room</p>
+            <div className="hero-tags">
+              <span className="tag tag-live">Control room</span>
+              <span className="label">Liner · a LesWWW project</span>
+            </div>
             <h1>
-              Change the track,<br />
-              <em>from your phone.</em>
+              Change the track, <mark>from your phone.</mark>
             </h1>
           </section>
-          <form action={login} className="card login">
+          <form action={login} className="login">
             <input type="password" name="password" placeholder="Password" autoFocus required />
-            <button type="submit" className="pill">Enter</button>
-            {params.wrong && <p className="meta">Wrong password.</p>}
+            <button type="submit" className="btn">Enter →</button>
+            {params.wrong && <p className="label">Wrong password.</p>}
           </form>
         </main>
         <Footer />
@@ -46,11 +48,11 @@ export default async function Control({ searchParams }: { searchParams: Promise<
         <NowPlaying status={status} visual={status ? visuals.get(slug(status.guid)) : undefined} pending={pending} />
 
         <form action={send} className="actions">
-          <button name="action" value="next" className="pill" disabled={!!pending}>Next track</button>
-          <button name="action" value="refresh" className="pill muted" disabled={!!pending}>Redraw</button>
+          <button name="action" value="next" className="btn" disabled={!!pending}>Next track →</button>
+          <button name="action" value="refresh" className="btn secondary" disabled={!!pending}>Redraw</button>
         </form>
 
-        <h2 className="eyebrow list-title">Pick a track</h2>
+        <h2 className="list-title">Pick a track</h2>
         <ul className="tracks">
           {items.map((item) => {
             const visual = visuals.get(slug(item.guid));
@@ -66,7 +68,7 @@ export default async function Control({ searchParams }: { searchParams: Promise<
                     </span>
                   </button>
                 </form>
-                {visual && <a href={visual.downloadUrl} className="pill muted tiny" aria-label={`Download the picture for ${item.title}`}>PNG</a>}
+                {visual && <a href={visual.downloadUrl} className="tag download" aria-label={`Download the picture for ${item.title}`}>PNG</a>}
               </li>
             );
           })}

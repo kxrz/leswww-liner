@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Big_Shoulders, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import "./globals.css";
 
-// The LesWWW type system, as on leswww.com
-const sans = Geist({ subsets: ["latin"], variable: "--sans" });
-const mono = Geist_Mono({ subsets: ["latin"], variable: "--mono" });
-const display = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--display" });
+// The LesWWW trio, as on leswww.com: headings, body, labels
+const display = Big_Shoulders({ subsets: ["latin"], weight: "800", variable: "--display" });
+const sans = Public_Sans({ subsets: ["latin"], variable: "--sans" });
+const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: "400", variable: "--mono" });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://liner.leswww.com"),
@@ -20,14 +20,14 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f6f4" },
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable} ${display.variable}`}>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

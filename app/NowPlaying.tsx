@@ -56,14 +56,14 @@ export function NowPlaying({ status, visual, pending }: Props) {
       {status && (
         <div className="caption">
           <div>
-            <p className="eyebrow">On the wall</p>
+            <span className="tag tag-live">On the wall</span>
             <p className="track-artist">{status.artist}</p>
             <p className="track-title">{status.title}</p>
-            <p className="meta">
+            <p className="label">
               {[status.place, `since ${when.format(new Date(status.at))}`].filter(Boolean).join(" · ")}
             </p>
           </div>
-          {visual && <a href={visual.downloadUrl} className="pill muted small">PNG ↓</a>}
+          {visual && <a href={visual.downloadUrl} className="btn secondary small">PNG ↓</a>}
         </div>
       )}
     </section>

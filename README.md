@@ -60,7 +60,7 @@ Two panels are sold as "Inky Impression 7.3"": this code targets the 2025 Spectr
 ## Repository
 
 ```
-app/                  web (Next.js), styled after leswww.com
+app/                  web (Next.js), in the LesWWW charter
   page.tsx            public landing page
   control/            control room, behind a password
   NowPlaying.tsx      request tracking, flash when the frame is done
@@ -156,7 +156,7 @@ Liner is designed and built by [LesWWW](https://leswww.com), the studio behind [
 - Music: [320kbps.club](https://www.320kbps.club) feed and album pages
 - Outlines: [Natural Earth](https://www.naturalearthdata.com) 1:50m, public domain
 - Origins: [MusicBrainz](https://musicbrainz.org) (CC0); cities: [Nominatim](https://nominatim.openstreetmap.org), © OpenStreetMap contributors
-- Fonts: [IBM Plex](https://github.com/IBM/plex) on the frame; Geist and Instrument Serif on the web, as on leswww.com (SIL Open Font License)
+- Fonts: [IBM Plex](https://github.com/IBM/plex) on the frame; Big Shoulders, Public Sans and IBM Plex Mono on the web, per the LesWWW charter (SIL Open Font License)
 
 ## License
 

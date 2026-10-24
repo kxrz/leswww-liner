@@ -8,7 +8,8 @@ user-facing text, code and commits are in English.
 - **The Pi draws the layout** (`pi/liner.py`, Pillow). The web side relays requests, stores pictures and draws
   only the map (`/api/map`).
 - **Two pages**: `/` is the public landing (rebuilt every 10 minutes), `/control` the password-protected control
-  room. The web styling follows leswww.com (Geist, Instrument Serif italics, lime accent, pill buttons, dark mode).
+  room. The web follows the LesWWW charter (repo kxrz/leswww2026-euracreative): Big Shoulders / Public Sans /
+  IBM Plex Mono, black and white, lemon `--accent` for interactive things only, cyan `--pop3` for real data.
 - **Keep it small.** One Python script on the Pi; on the web, one page, a few routes, a few JSON files and PNGs in
   Blob. No database, no CSS framework, no dependency that is not essential.
 - **Text is never antialiased or dithered** (`d.fontmode = "1"`), pure inks only. Only the cover is dithered.

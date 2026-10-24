@@ -633,6 +633,19 @@ form.actions .btn {
   gap: 0.9rem;
 }
 
+.gallery .card.current {
+  border-color: var(--ink);
+  box-shadow: inset 0 -6px 0 var(--accent);
+}
+
+.showcase + .gallery {
+  margin-top: 3rem;
+}
+
+.showcase .downloads {
+  margin-top: 1rem;
+}
+
 .thumb {
   display: block;
   width: 100%;

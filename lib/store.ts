@@ -9,7 +9,7 @@ export type Status = {
 };
 
 /** A picture as drawn on the frame, downloadable from the page. */
-export type Visual = { url: string; downloadUrl: string };
+export type Visual = { url: string; downloadUrl: string; uploadedAt?: string };
 
 const COMMAND = "liner/command.json";
 const STATUS = "liner/status.json";
@@ -63,7 +63,7 @@ export async function listVisuals(): Promise<Map<string, Visual>> {
     do {
       const page = await list({ prefix: VISUALS, cursor });
       for (const b of page.blobs) {
-        visuals.set(b.pathname.slice(VISUALS.length, -4), { url: b.url, downloadUrl: b.downloadUrl });
+        visuals.set(b.pathname.slice(VISUALS.length, -4), { url: b.url, downloadUrl: b.downloadUrl, uploadedAt: new Date(b.uploadedAt).toISOString() });
       }
       cursor = page.cursor;
     } while (cursor);

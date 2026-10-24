@@ -1,7 +1,7 @@
 # Liner
 
 **An e-ink frame that hangs one track at a time from [320kbps.club](https://www.320kbps.club), like a work in a museum.**
-A [LesWWW](https://leswww.com) project.
+A [LesWWW](https://leswww.com) project · **[liner.leswww.com](https://liner.leswww.com)**
 
 The cover and its liner notes sit on a museum label, laid over a map of where the artist comes from.
 A new track every morning and evening, and a small web page to change it from your phone.
@@ -60,8 +60,11 @@ Two panels are sold as "Inky Impression 7.3"": this code targets the 2025 Spectr
 ## Repository
 
 ```
-app/                  web page (Next.js) and API routes
-  NowPlaying.tsx      frame mockup, request tracking, flash when the frame is done
+app/                  web (Next.js), styled after leswww.com
+  page.tsx            public landing page
+  control/            control room, behind a password
+  NowPlaying.tsx      request tracking, flash when the frame is done
+  Frame.tsx           the frame mockup (wood, mat, visible area)
   api/pi/             the frame: poll for requests, report a redraw, upload its picture
   api/map/            duotone map of an artist's origin, as a PNG in the panel's inks
   api/status/         polled by the page while a request is on its way
@@ -76,6 +79,7 @@ pi/
   fonts/              IBM Plex Sans (variable) and IBM Plex Mono
   systemd/            liner.timer (7:00, 19:00) and liner-sync.timer (every minute)
   install.sh          installs dependencies and services
+public/               avatar, Open Graph image, sample pictures for the landing page
 docs/                 sample pictures
 ```
 
@@ -103,7 +107,7 @@ newest track.
 
 ## Deploy the web page
 
-The Vercel project (`leswww-liner`) is linked to this repository: every push to `main` deploys. Connect a Blob store, then set:
+The Vercel project (`leswww-liner`, served at [liner.leswww.com](https://liner.leswww.com)) is linked to this repository: every push to `main` deploys. Connect a Blob store, then set:
 
 | Variable | |
 |---|---|
@@ -152,4 +156,8 @@ Liner is designed and built by [LesWWW](https://leswww.com), the studio behind [
 - Music: [320kbps.club](https://www.320kbps.club) feed and album pages
 - Outlines: [Natural Earth](https://www.naturalearthdata.com) 1:50m, public domain
 - Origins: [MusicBrainz](https://musicbrainz.org) (CC0); cities: [Nominatim](https://nominatim.openstreetmap.org), © OpenStreetMap contributors
-- Fonts: [IBM Plex](https://github.com/IBM/plex), SIL Open Font License
+- Fonts: [IBM Plex](https://github.com/IBM/plex) on the frame; Geist and Instrument Serif on the web, as on leswww.com (SIL Open Font License)
+
+## License
+
+[MIT](LICENSE) © LesWWW

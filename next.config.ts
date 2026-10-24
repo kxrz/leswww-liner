@@ -1,8 +1,14 @@
 import type { NextConfig } from "next";
 
+const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
+
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] }];
+    // The landing page is public; the control room and the API are not for search engines
+    return [
+      { source: "/control", headers: noindex },
+      { source: "/api/:path*", headers: noindex },
+    ];
   },
 };
 

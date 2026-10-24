@@ -14,18 +14,18 @@ export async function login(form: FormData) {
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 365,
     });
-    redirect("/");
+    redirect("/control");
   }
-  redirect("/?wrong=1");
+  redirect("/control?wrong=1");
 }
 
 export async function send(form: FormData) {
-  if (!(await isLoggedIn())) redirect("/");
+  if (!(await isLoggedIn())) redirect("/control");
   const action = form.get("action");
-  if (action !== "next" && action !== "refresh" && action !== "show") redirect("/");
+  if (action !== "next" && action !== "refresh" && action !== "show") redirect("/control");
   const command: Command = { id: Date.now(), action };
   const guid = form.get("guid");
   if (action === "show" && typeof guid === "string") command.guid = guid;
   await writeCommand(command);
-  redirect(`/?sent=${command.id}`);
+  redirect(`/control?sent=${command.id}`);
 }

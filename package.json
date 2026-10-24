@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Liner, a LesWWW project: an e-ink frame that hangs one track at a time from 320kbps.club",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

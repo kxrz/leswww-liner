@@ -2,22 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { PANEL, POLL_SECONDS, REDRAW_SECONDS, VISIBLE } from "@/lib/frame";
+import { Frame } from "./Frame";
+import { POLL_SECONDS, REDRAW_SECONDS } from "@/lib/frame";
 import type { Status, Visual } from "@/lib/store";
 
 type Props = { status: Status | null; visual?: Visual; pending: number | null };
 
 const when = new Intl.DateTimeFormat("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit" });
 
-// The picture is the full 800×480 panel; the mockup only shows what the mat leaves visible.
-const visibleW = VISIBLE.x1 - VISIBLE.x0;
-const visibleH = VISIBLE.y1 - VISIBLE.y0;
-const crop = {
-  width: `${(PANEL.width / visibleW) * 100}%`,
-  left: `${(-VISIBLE.x0 / visibleW) * 100}%`,
-  top: `${(-VISIBLE.y0 / visibleH) * 100}%`,
-};
-
+/** The frame as it is now, and the progress of a request on its way to it. */
 export function NowPlaying({ status, visual, pending }: Props) {
   const router = useRouter();
   const [elapsed, setElapsed] = useState(0);
@@ -32,7 +25,7 @@ export function NowPlaying({ status, visual, pending }: Props) {
       if (handled >= pending) {
         clearInterval(poll);
         setDone(true);
-        setTimeout(() => router.replace("/"), 1600); // let the flash play, then show the new picture
+        setTimeout(() => router.replace("/control"), 1600); // let the flash play, then show the new picture
       }
     }, 5000);
     return () => {
@@ -42,25 +35,15 @@ export function NowPlaying({ status, visual, pending }: Props) {
   }, [pending, router]);
 
   const step = done ? 3 : elapsed < POLL_SECONDS ? 1 : 2;
-  const steps = [
-    "Request sent",
-    "Frame picks it up · within a minute",
-    `E-ink redraw · about ${REDRAW_SECONDS} seconds`,
-  ];
+  const steps = ["Request sent", "Frame picks it up · within a minute", `E-ink redraw · about ${REDRAW_SECONDS} seconds`];
 
   return (
     <section className="now">
-      <div className="frame">
-        <div className="mat">
-          <div className={`screen${pending ? (done ? " flash" : " waiting") : ""}`} style={{ aspectRatio: `${visibleW} / ${visibleH}` }}>
-            {visual && status ? (
-              <img src={`${visual.url}?v=${status.at}`} alt={`${status.artist} — ${status.title}`} style={crop} />
-            ) : (
-              <p className="mono empty">Nothing on the wall yet</p>
-            )}
-          </div>
-        </div>
-      </div>
+      <Frame
+        src={visual && status ? `${visual.url}?v=${status.at}` : undefined}
+        alt={status ? `${status.artist} — ${status.title}` : "The frame"}
+        state={pending ? (done ? "flash" : "waiting") : undefined}
+      />
 
       {pending ? (
         <ol className="steps" aria-live="polite">
@@ -73,13 +56,14 @@ export function NowPlaying({ status, visual, pending }: Props) {
       {status && (
         <div className="caption">
           <div>
-            <p className="artist">{status.artist}</p>
-            <p className="title">{status.title}</p>
-            <p className="mono">
-              {[status.place, `on the wall since ${when.format(new Date(status.at))}`].filter(Boolean).join(" · ")}
+            <p className="eyebrow">On the wall</p>
+            <p className="track-artist">{status.artist}</p>
+            <p className="track-title">{status.title}</p>
+            <p className="meta">
+              {[status.place, `since ${when.format(new Date(status.at))}`].filter(Boolean).join(" · ")}
             </p>
           </div>
-          {visual && <a href={visual.downloadUrl} className="download">PNG ↓</a>}
+          {visual && <a href={visual.downloadUrl} className="pill muted small">PNG ↓</a>}
         </div>
       )}
     </section>

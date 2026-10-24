@@ -1,0 +1,9 @@
+[Unit]
+Description=Cadre e-ink : interroge la page web chaque minute, de 7h à minuit
+
+[Timer]
+OnCalendar=*-*-* 07..23:*:00
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

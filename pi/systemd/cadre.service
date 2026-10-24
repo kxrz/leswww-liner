@@ -1,0 +1,12 @@
+[Unit]
+Description=Cadre e-ink : mise à jour de l'affichage
+Wants=network-online.target
+After=network-online.target time-sync.target
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/tekpi-eink/pi
+EnvironmentFile=-/home/pi/tekpi-eink/pi/cadre.env
+ExecStart=/usr/bin/python3 /home/pi/tekpi-eink/pi/cadre.py
+TimeoutStartSec=300

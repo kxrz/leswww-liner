@@ -1,19 +1,28 @@
-export const AUTH_COOKIE = "tekpi_auth";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { cookies } from "next/headers";
 
-/**
- * Empreinte déterministe du mot de passe : c'est la valeur du cookie de
- * session. Écrit avec l'API Web Crypto pour être utilisable aussi bien depuis
- * le middleware (runtime edge) que depuis une route Node.
- */
-export async function sessionToken(secret: string): Promise<string> {
-  const data = new TextEncoder().encode(`tekpi:${secret}`);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+export const COOKIE = "cadre";
+
+/** Ce qu'on garde en cookie : une empreinte du mot de passe, jamais le mot de passe lui-même. */
+export function fingerprint(password: string): string {
+  return createHash("sha256").update(`tekpi:${password}`).digest("hex");
 }
 
-/** Le site est-il réellement protégé ? Sert à alerter dans l'interface. */
-export function isAuthConfigured(): boolean {
-  return Boolean(process.env.SITE_PASSWORD);
+function same(a: string, b: string): boolean {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+}
+
+export async function isLoggedIn(): Promise<boolean> {
+  const password = process.env.SITE_PASSWORD;
+  if (!password) return true;
+  const value = (await cookies()).get(COOKIE)?.value ?? "";
+  return same(value, fingerprint(password));
+}
+
+export function isDevice(request: Request): boolean {
+  const token = process.env.DEVICE_TOKEN;
+  if (!token) return true;
+  return same(request.headers.get("authorization") ?? "", `Bearer ${token}`);
 }

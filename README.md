@@ -1,168 +1,127 @@
 # tekpi-eink
 
-Cadre photo connecté pour écran e-ink couleur **Pimoroni Inky Impression 7.3"** (800×480), piloté par un Raspberry Pi Zero 2 W. Les deux révisions du matériel sont gérées : ACeP 7 couleurs (PIM673) et Spectra 6 (PIM773, 2025).
+Un cadre e-ink posé dans le salon : un titre de [320kbps.club](https://www.320kbps.club) et la météo de Lille,
+renouvelés matin et soir, avec une petite page web pour changer de titre depuis le téléphone.
 
-Deux moitiés qui ne se parlent que par une URL :
+```
+┌──────────────────────────────────────────────┐
+│ samedi 24 octobre               320kbps.club │
+│ ──────────────────────────────────────────── │
+│ ┌────────┐  Bitter Better                    │
+│ │pochette│  Magugu & Le Motel                │
+│ │ tramée │                            ▣ QR   │
+│ └────────┘  nouvel EP                        │
+│ ──────────────────────────────────────────── │
+│         Lille        8h   12h   16h   20h    │
+│  11°    aujourd'hui  ☁    ☀    🌧    🌧     │
+│         min 6°       6°   11°   10°   10°    │
+└──────────────────────────────────────────────┘
+```
 
-- une **web app Next.js sur Vercel** pour uploader, cadrer et gérer les photos ;
-- un **script Python sur Raspberry Pi Zero 2 W** qui récupère l'image du moment et rafraîchit l'écran.
+## Matériel
+
+- Raspberry Pi Zero 2 W, Raspberry Pi OS Bookworm
+- Pimoroni Inky Impression 7,3" **Spectra 6** (800 × 480, six encres : noir, blanc, jaune, rouge, bleu, vert)
+- Un cadre photo avec passe-partout, qui masque les bords de l'écran (voir [Zone visible](#zone-visible))
 
 ## Comment ça marche
 
-Le Pi n'est qu'une vitrine : il ne compose rien, ne décide rien, et n'affiche
-pas le site. Toutes les décisions sont prises en ligne, il vient simplement
-demander s'il y a un changement à appliquer.
-
-1. **Upload** : la photo est compressée côté client (max 1800 px, JPEG), puis
-   stockée dans Vercel Blob sous `originals/` avec un nom de base unique.
-2. **Cadrage** : un clic sur la vignette ouvre un éditeur (cropperjs, ratio 5:3,
-   rotation). À la validation, `/api/store-display` écrit `crops/<base>.jpg` et
-   `display/<base>.png`, le rendu 800×480 pré-dithé pour la dalle, puis affiche
-   un aperçu fidèle de ce que l'écran montrera.
-3. **Synchronisation** : le Pi appelle `/api/state` à la cadence fixée depuis
-   le site (5 min par défaut). Tant que rien ne change, la réponse fait
-   quelques centaines d'octets et l'écran ne bouge pas. Dès qu'elle annonce un
-   changement, il récupère le PNG et rafraîchit.
-
-La configuration (mode, rotation, intervalle, saturation, délai de garde) est
-persistée en JSON dans le Blob : pas de base de données.
-
-## Mode « album du jour »
-
-L'écran peut afficher, à la place de la galerie, un album tiré chaque jour
-d'une **playlist Spotify publique que tu as créée**. Depuis le 27 novembre
-2024, les playlists éditoriales et algorithmiques de Spotify ne sont plus
-lisibles par les applications créées après cette date : seule une playlist
-personnelle rendue publique fonctionne.
-
-- L'authentification utilise le flux *Client Credentials*, sans connexion
-  utilisateur, avec `SPOTIFY_CLIENT_ID` et `SPOTIFY_CLIENT_SECRET`.
-- Le catalogue de la playlist est mis en cache dans le Blob. Si Spotify est
-  injoignable, le cache prend le relais et l'écran ne se vide pas.
-- La sélection est une fonction de la date, pas un tirage aléatoire : deux
-  exécutions le même jour donnent le même album, chaque album passe une fois
-  par cycle, et jamais deux jours de suite.
-- Le rendu est composé côté serveur avec satori, qui vectorise le texte : la
-  police est embarquée dans le dépôt, il n'y a aucune dépendance aux polices
-  installées sur l'hôte.
-- Le cron quotidien de Vercel (`vercel.json`) recalcule l'album vers 2 h du
-  matin, heure de Paris. Une exécution par jour est exactement ce que le plan
-  hobby autorise.
-
-**Seule la pochette est tramée.** Le texte et les aplats sont rendus sans
-antialiasing et rabattus sur les couleurs exactes de la palette : tramer du
-texte le rendrait illisible, et les gris de bord d'un rendu vectoriel tombent
-géométriquement plus près du vert ou du rouge que du noir, ce qui entourerait
-chaque lettre d'un liseré coloré.
-
-## Boucle de synchronisation
-
-| Endpoint | Appelé par | Rôle |
-|---|---|---|
-| `GET /api/state` | Pi, à la cadence réglée | Faut-il rafraîchir ? Et à quelle cadence revenir. |
-| `GET /api/next-image` | Pi, si oui | PNG 800×480 prêt à afficher |
-| `POST /api/heartbeat` | Pi | Dalle détectée, révision affichée, erreurs, événements |
-| `GET /api/status` | site | État complet de l'onglet Écran |
-| `GET /api/journal` | site | Journal, chargé à la demande |
-| `POST /api/force-refresh` | site | « Afficher maintenant » |
-| `GET/POST /api/album/refresh` | cron + site | Calcule l'album du jour |
-
-La `revision` est un hachage de `pathname + uploadedAt + forceRefreshAt` : elle
-change quand l'image du moment change, quand un re-cadrage écrase le blob à URL
-identique, et quand on force l'affichage depuis le site.
-
-Un délai de garde configurable empêche deux rafraîchissements rapprochés (un
-cycle e-ink dure 20 à 35 s) ; « Afficher maintenant » passe outre.
-
-## Rendu des images
-
-La dalle est **détectée, jamais supposée** : le Pi rapporte son driver via
-`inky.auto()` et le serveur dithère vers la palette correspondante. Deux
-matériels portent le même nom commercial, avec des palettes différentes
-(7 couleurs sur l'ACeP d'origine, 6 sur le Spectra 6 de 2025, sans orange).
-
-Le dithering vise les couleurs que la dalle **rend réellement**, soit le mélange
-à parts égales des deux palettes du driver, ce qui reproduit le `saturation=0.5`
-par défaut des exemples officiels Pimoroni. Le Pi passe ensuite l'image à
-`set_image(img, saturation=0.5)` : PIL retrouve chaque couleur à l'identique et
-se contente de l'indexer, sans re-quantifier ni re-dithérer. Viser les primaires
-RGB pures serait un piège : le driver ajoute une entrée « clean » de valeur
-`[255, 255, 255]` qui capterait tous les blancs.
-
-Les réglages du pipeline (`lib/render.ts`) ont été choisis en mesurant l'écart
-colorimétrique moyen (ΔE Lab, après un flou simulant la perception du tramage à
-distance de lecture) contre l'image d'origine, sur quatre images de référence.
-L'erreur moyenne passe de 9,94 à 3,74 en ACeP 7, et de 9,34 à 5,42 en Spectra 6.
-
-La saturation reste réglable depuis le site : « Fidèle » est le plus proche de
-l'original, les crans supérieurs suivent le conseil de Pimoroni quand le rendu
-paraît terne. Les images contrastées aux aplats larges rendent nettement mieux
-que les dégradés doux et les teintes chair.
-
-## Développement local
-
-```bash
-npm install
-npm run dev
+```
+   téléphone                Vercel                      Raspberry Pi
+ ┌───────────┐  bouton  ┌───────────────┐   GET /api/pi   ┌────────────────┐
+ │ page web  │ ───────► │ command.json  │ ◄────────────── │ cadre.py --sync│  chaque minute, 7h–minuit
+ └───────────┘          │ (Vercel Blob) │                 └───────┬────────┘
+       ▲                │  status.json  │ ◄── POST /api/pi ───────┤ après chaque affichage
+       └── « à l'écran » └───────────────┘                         │
+                                                          ┌───────┴────────┐
+                                                          │ cadre.py       │  7h et 19h
+                                                          └────────────────┘
 ```
 
-Créer un `.env.local` à partir de `.env.local.example`. Seul
-`BLOB_READ_WRITE_TOKEN` est nécessaire pour la galerie.
+Le Pi est derrière la box : Vercel ne peut pas le joindre. C'est donc lui qui interroge la page chaque minute.
+Une demande met au plus une à deux minutes à être prise en compte, plus une trentaine de secondes de rafraîchissement de la dalle.
 
-**Installation pas à pas : [INSTALLATION.md](INSTALLATION.md).**
-**Référence des variables d'environnement : [DEPLOIEMENT.md](DEPLOIEMENT.md).**
+Tout le dessin se fait **sur le Pi**, en Python avec Pillow. Le site ne fait que transmettre des demandes.
 
-## Côté Raspberry Pi
+- **7h** : le prochain titre du flux pas encore affiché, et la météo du jour.
+- **19h** : le titre suivant, et la météo du lendemain.
+- **Depuis la page** : « Titre suivant », « Rafraîchir » (même titre, météo à jour) ou n'importe quel titre du flux.
 
-Le script `pi/update_display.py` (dépendances : `requests`, `pillow`, `inky`)
-s'exécute via cron, réveillé chaque minute :
+Sans connexion à la page (pas de `cadre.env`), le cadre fonctionne seul, matin et soir.
 
-```cron
-* * * * * /usr/bin/python3 /home/pi/update_display.py
+## Le dépôt
+
+```
+app/                 page mobile (Next.js) et route /api/pi du Pi
+lib/
+  feed.ts            lecture du flux RSS de 320kbps.club
+  store.ts           command.json et status.json dans Vercel Blob
+  auth.ts            mot de passe de la page, jeton du Pi
+pi/
+  cadre.py           tout le cadre : données, mise en page, affichage, synchro
+  fonts/             IBM Plex Sans (variable) et IBM Plex Mono
+  systemd/           cadre.timer (7h, 19h) et cadre-sync.timer (chaque minute)
+  install.sh         installe les dépendances et les services
+  cadre.env.example  adresse de la page et jeton
 ```
 
-Le cron ne fait que réveiller le script : celui-ci s'arrête aussitôt si la
-cadence dictée par le serveur n'est pas écoulée. **Régler la fréquence depuis
-le site ne demande donc aucune intervention sur le Pi.**
+## Installer le Pi
 
-Il mémorise la révision affichée dans `~/.tekpi-state.json` et n'allume la
-dalle que si le serveur annonce un changement. Ses événements sont journalisés
-dans `~/tekpi.log` et remontés au site avec le heartbeat, consultables dans
-l'onglet Écran sans passer par SSH.
+```sh
+git clone https://github.com/kxrz/tekpi-eink.git ~/tekpi-eink
+cd ~/tekpi-eink/pi
+cp cadre.env.example cadre.env   # puis renseigner CADRE_TOKEN
+./install.sh
+```
 
-## Usure de la dalle
+Le SPI et l'I2C doivent être activés (`sudo raspi-config` › Interface Options).
 
-Une dalle e-ink couleur supporte un nombre fini de cycles, et un cycle dure 20
-à 35 s. Trois réglages la ménagent, tous côté site : l'intervalle de rotation,
-le délai minimal entre deux rafraîchissements (15 min par défaut), et la
-cadence de sondage. L'onglet Écran affiche le nombre de cycles cumulés et la
-moyenne par jour. Un sondage sans changement n'allume pas la dalle.
+Mettre à jour : `cd ~/tekpi-eink && git pull && pi/install.sh`.
 
-## Accès
+### Au quotidien
 
-Le site pilote un objet physique posé chez toi : il n'a pas vocation à être
-ouvert. Définir `SITE_PASSWORD` active une porte d'entrée (cookie `HttpOnly`
-valable 30 jours, posé par `/api/login`, vérifié dans `middleware.ts`).
+| | |
+|---|---|
+| Afficher le titre suivant tout de suite | `sudo systemctl start cadre` |
+| Voir ce qui s'est passé | `journalctl -u cadre -u cadre-sync -n 30` |
+| Prochains déclenchements | `systemctl list-timers 'cadre*'` |
+| Tester une mise en page sans toucher l'écran | `python3 cadre.py --preview` puis ouvrir `preview.png` |
+| Version du soir | `python3 cadre.py --preview --soir` |
 
-Le Pi, lui, n'a pas de navigateur et ne peut pas suivre une redirection vers un
-formulaire : il s'authentifie avec un en-tête `X-Tekpi-Token` sur ses trois
-routes (`/api/state`, `/api/next-image`, `/api/heartbeat`), comparé à
-`DEVICE_TOKEN`. Le cron de Vercel utilise `CRON_SECRET`, qu'il fournit seul.
+`state.json` retient les titres déjà affichés et la dernière demande traitée. Le supprimer fait repartir du titre le plus récent.
 
-**Les deux protections sont facultatives, et c'est un choix assumé** : couper
-le cadre en silence à la première mise en production serait pire que l'absence
-de protection. Tant que `SITE_PASSWORD` n'est pas défini, le site reste public
-et l'onglet Écran affiche un avertissement bien visible.
+## Déployer la page
 
-L'indexation, elle, est bloquée par défaut et sans rien à configurer :
-`robots.txt` (`app/robots.ts`), en-tête `X-Robots-Tag` sur toutes les réponses
-y compris la redirection vers `/login` (`next.config.ts`), et balise `robots`
-du document (`app/layout.tsx`). Trois consignes que les robots honnêtes
-respectent ; la protection réelle reste le mot de passe.
+Le projet Vercel `tekpi-eink` est relié à ce dépôt : chaque push sur `main` déploie.
 
-## Contraintes matérielles
+| Variable | Rôle |
+|---|---|
+| `BLOB_READ_WRITE_TOKEN` | Accès au store Blob, posée par Vercel quand le store est relié au projet |
+| `SITE_PASSWORD` | Mot de passe de la page. Sans elle, la page est ouverte à tous |
+| `DEVICE_TOKEN` | Jeton du Pi, identique à `CADRE_TOKEN` dans `pi/cadre.env`. Sans lui, `/api/pi` est ouverte |
 
-La palette est figée par le contrôleur : toute couleur hors palette est
-approximée grossièrement, d'où le dithering custom obligatoire. Voir
-`lib/panels.ts` pour les deux dalles et `CLAUDE.md` pour le détail des
-contraintes.
+Sur le téléphone, « Ajouter à l'écran d'accueil » donne une petite app.
+
+En local : `npm install && npm run dev` (avec un `.env.local`, voir `.env.example`).
+
+## Choix de rendu
+
+- **Texte sans anticrénelage.** Les pixels gris du lissage tomberaient sur la couleur la plus proche,
+  souvent le bleu : chaque lettre aurait un liseré. Le texte est rendu net, en encres pures.
+- **Seule la pochette est tramée** (Floyd-Steinberg), vers les couleurs *réellement* rendues par la dalle :
+  le mélange à 50 % des palettes `SATURATED_PALETTE` et `DESATURATED_PALETTE` du pilote Pimoroni, comme le fait
+  `set_image()` par défaut. L'image finale est envoyée en mode « P » à six couleurs exactes : le pilote ne retrame rien.
+- **La couleur reste un accent** : rouge pour l'artiste, température bleue (< 12 °C) ou rouge (≥ 24 °C),
+  pluie en bleu au-delà de 50 %, pictos météo dessinés au trait. Le reste est noir sur blanc, dans l'esprit Mudita.
+- **L'aperçu** (`preview.png`) utilise les couleurs de l'encre : son fond grisâtre est celui de l'écran réel.
+
+### Zone visible
+
+Le passe-partout cache une partie de la dalle. Mesurée avec une mire : x 52 → 748, y 35 → 480.
+Toute la mise en page tient dans `VISIBLE` (en haut de `cadre.py`), avec 24 px de marge en plus.
+Si le Pi bouge dans le cadre, c'est la seule valeur à changer.
+
+## Sources
+
+- Flux : `https://www.320kbps.club/feed.xml` (titres, albums, pochettes en `media:content`)
+- Météo : [Open-Meteo](https://open-meteo.com), sans clé ; Lille (50,63 ; 3,06), fuseau Europe/Paris

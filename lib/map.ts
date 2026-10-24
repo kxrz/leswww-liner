@@ -12,7 +12,6 @@ const BY_NAME = new Map(
   Object.values(COUNTRIES).flatMap((c) => c.names.map((n) => [n.toLowerCase(), c] as const)),
 );
 const UA = { "User-Agent": "tekpi-eink (https://github.com/kxrz/tekpi-eink)", "Accept-Language": "en" };
-const MONTH = 60 * 60 * 24 * 30;
 
 // Encres pures de la dalle : le Pi les retrouve à l'identique, sans tramage.
 export const INKS = {
@@ -24,12 +23,15 @@ function countryLabel(c: Country): string {
   return c.names.reduce((a, b) => (b.length < a.length ? b : a));
 }
 
-/** « Belgium » est un pays ; « Beverly Hills » est géocodé (Nominatim). */
+/**
+ * « Belgium » est un pays ; « Beverly Hills » est géocodé (Nominatim). Les appels externes ne sont pas mis en cache :
+ * une erreur passagère y resterait. C'est l'image finale que le CDN garde.
+ */
 async function locate(origin: string): Promise<Place | null> {
   const country = BY_NAME.get(origin.toLowerCase());
   if (country) return { country, label: countryLabel(country) };
   const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&q=${encodeURIComponent(origin)}`;
-  const res = await fetch(url, { headers: UA, next: { revalidate: MONTH } });
+  const res = await fetch(url, { headers: UA, cache: "no-store" });
   const [hit] = (await res.json()) as { lat: string; lon: string; address?: { country_code?: string } }[];
   const found = hit && COUNTRIES[hit.address?.country_code?.toUpperCase() ?? ""];
   if (!found) return null;
@@ -40,27 +42,48 @@ async function locate(origin: string): Promise<Place | null> {
   };
 }
 
-/** Origine d'un artiste selon MusicBrainz : ville de naissance ou de formation, sinon pays. */
-async function artistOrigin(artist: string): Promise<string | null> {
-  for (const name of [artist, ...artist.split(/\s*(?:&|,| feat\.? | x )\s*/i)]) {
-    const url = `https://musicbrainz.org/ws/2/artist?fmt=json&limit=1&query=${encodeURIComponent(`artist:"${name}"`)}`;
-    let res = await fetch(url, { headers: UA, next: { revalidate: MONTH } });
-    if (res.status === 503) {
-      // MusicBrainz limite à une requête par seconde et répond « occupé » au-delà : on retente une fois
-      await new Promise((r) => setTimeout(r, 1200));
-      res = await fetch(url, { headers: UA, cache: "no-store" });
-    }
-    if (!res.ok) continue;
-    const [a] = ((await res.json()) as { artists?: { score: number; country?: string; area?: { name: string }; "begin-area"?: { name: string } }[] }).artists ?? [];
-    if (!a || a.score < 90) continue;
+type MbArea = { name: string; type?: string };
+type MbArtist = { name: string; score: number; country?: string; area?: MbArea; "begin-area"?: MbArea };
+
+const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[‐‑–]/g, "-").toLowerCase().trim();
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function searchArtist(name: string): Promise<MbArtist[]> {
+  const url = `https://musicbrainz.org/ws/2/artist?fmt=json&limit=5&query=${encodeURIComponent(`artist:"${name}"`)}`;
+  let res = await fetch(url, { headers: UA, cache: "no-store" });
+  if (res.status === 503) {
+    // MusicBrainz limite à une requête par seconde et répond « occupé » au-delà : on retente une fois
+    await wait(1200);
+    res = await fetch(url, { headers: UA, cache: "no-store" });
+  }
+  return res.ok ? ((await res.json()) as { artists?: MbArtist[] }).artists ?? [] : [];
+}
+
+/**
+ * D'où vient l'artiste. Le flux de 320kbps.club donne le lieu où il est *installé* (l'« area » de MusicBrainz :
+ * Beverly Hills pour Thomas Bangalter) ; on cherche le lieu de naissance ou de formation (« begin-area » : Paris).
+ * `hint`, l'origine du flux, sert à choisir le bon homonyme (Deluxe d'Aix-en-Provence, pas Samy Deluxe).
+ * Une collaboration « A & B » est résolue par le premier artiste connu. Faute de mieux, on garde `hint`.
+ */
+async function artistOrigin(artist: string, hint?: string): Promise<string | null> {
+  const names = [artist, ...artist.split(/\s*(?:&|,|\+| feat\.? | x )\s*/i)].filter((n, i, all) => n && all.indexOf(n) === i);
+  for (const [i, name] of names.entries()) {
+    if (i > 0) await wait(1100);
+    const exact = (await searchArtist(name)).filter((a) => a.score >= 90 && norm(a.name) === norm(name));
+    if (!exact.length) continue;
+    const fits = (a: MbArtist) =>
+      [a.area?.name, a["begin-area"]?.name, ...(a.country ? COUNTRIES[a.country]?.names ?? [] : [])]
+        .some((n) => n && hint && norm(n) === norm(hint));
+    const a = exact.find(fits) ?? exact[0];
     const country = a.country ? COUNTRIES[a.country] : undefined;
-    const city = a["begin-area"]?.name;
-    if (city && BY_NAME.has(city.toLowerCase())) return city; // né dans un pays, installé ailleurs : le pays natal
-    if (city && country) return `${city}, ${countryLabel(country)}`;
+    const begin = a["begin-area"];
+    if (begin?.type === "Country") return begin.name; // né dans un pays, installé dans un autre : le pays natal
+    // La ville seule : le pays de résidence la fausserait (Julia Kent, née à Vancouver, vit aux États-Unis)
+    if (begin && ["City", "Municipality", "District"].includes(begin.type ?? "")) return begin.name;
     if (country) return countryLabel(country);
     if (a.area) return a.area.name;
   }
-  return null;
+  return hint || null;
 }
 
 function bbox(points: Pt[]): Box {
@@ -97,10 +120,10 @@ function mainland(rings: Ring[], point?: Pt): Ring[] {
  * pays d'origine au trait épais et tramé, cercle sur la ville. Le pays est cadré dans `box`.
  */
 export async function renderMap(
-  q: { origin?: string; artist?: string },
+  q: { artist?: string; hint?: string },
   w: number, h: number, box: Box, bg: Ink, ink: Ink,
 ) {
-  const origin = q.origin || (q.artist ? await artistOrigin(q.artist) : null);
+  const origin = q.artist ? await artistOrigin(q.artist, q.hint) : q.hint;
   const place = origin ? await locate(origin) : null;
   if (!place) return null;
 

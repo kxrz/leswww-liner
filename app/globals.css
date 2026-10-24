@@ -57,11 +57,49 @@ h2.label {
 }
 
 .now {
-  display: flex;
-  gap: 16px;
-  align-items: center;
   padding: 22px 0;
   border-bottom: 1px solid var(--line);
+}
+
+.visual img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 4px 0 14px;
+  border: 1px solid var(--ink);
+  image-rendering: pixelated; /* les pixels de l'e-ink, nets, même agrandis */
+}
+
+.caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.caption .artist {
+  font-size: 17px;
+  margin: 0 0 2px;
+}
+
+.caption .mono {
+  margin-top: 6px;
+}
+
+.download {
+  flex: none;
+  padding: 9px 12px;
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--mono), ui-monospace, monospace;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.download.small {
+  padding: 4px 7px;
+  border-width: 1px;
+  font-size: 11px;
 }
 
 .title {
@@ -138,6 +176,18 @@ button:active {
   padding: 0;
 }
 
+.list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.list form {
+  flex: 1;
+  min-width: 0;
+}
+
 .row {
   width: 100%;
   display: flex;
@@ -145,7 +195,6 @@ button:active {
   align-items: center;
   padding: 12px 0;
   border: 0;
-  border-bottom: 1px solid var(--line);
   background: none;
   text-align: left;
 }
@@ -159,7 +208,7 @@ button:active {
   font-size: 13px;
 }
 
-.row.current {
+.list li.current {
   box-shadow: inset 3px 0 0 var(--accent);
   padding-left: 12px;
 }

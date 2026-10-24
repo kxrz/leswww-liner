@@ -163,10 +163,9 @@ def origin_map(item, box, bg, ink):
     if not URL:
         return None, item["country"]
     w, h = VISIBLE[2] - VISIBLE[0], VISIBLE[3] - VISIBLE[1]
-    where = {"origin": item["country"]} if item["country"] else {"artist": item["artist"]}
-    try:
-        r = requests.get(f"{URL}/api/map", timeout=40, params={
-            **where, "v": 2, "w": w, "h": h, "box": ",".join(str(v) for v in box),
+    try:  # le serveur cherche d'où vient l'artiste ; l'origine du flux l'aide à trancher entre homonymes
+        r = requests.get(f"{URL}/api/map", timeout=60, params={
+            "artist": item["artist"], "hint": item["country"], "v": 3, "w": w, "h": h, "box": ",".join(str(v) for v in box),
             "bg": INK_NAMES[bg], "ink": INK_NAMES[ink]})
         r.raise_for_status()
     except requests.RequestException as e:
@@ -194,6 +193,7 @@ def render(item, now):
     # La carte d'abord : le pays se cadre à droite du cartel, ses voisins passent dessous
     box = (x1 + 30 - VISIBLE[0], 24, VISIBLE[2] - VISIBLE[0] - 24, VISIBLE[3] - VISIBLE[1] - 24)
     carte, place = origin_map(item, box, bg, ink)
+    item["place"] = place
     if carte:
         img.paste(carte, VISIBLE[:2])
 
@@ -250,13 +250,24 @@ def show(guid=None, command=0):
     state["seen"] = [g for g in seen if g != item["guid"]] + [item["guid"]]
     state["command"] = max(command, state.get("command", 0))
     STATE.write_text(json.dumps(state))
-    print(f"Affiché : {item['artist']} — {item['title']}")
+    print(f"Affiché : {item['artist']} — {item['title']} ({item['place'] or 'origine inconnue'})")
     if URL:
-        try:
-            requests.post(f"{URL}/api/pi", headers=AUTH, timeout=20, json={
-                "guid": item["guid"], "title": item["title"], "artist": item["artist"], "command": command})
-        except requests.RequestException as e:
-            print(f"Compte rendu non envoyé : {e}")
+        report(item, preview, command)
+
+
+def report(item, preview, command):
+    """Dépose le visuel sur le site (en double, pixels nets, pour le télécharger) puis signale l'affichage."""
+    try:
+        png = BytesIO()
+        preview.convert("RGB").resize((W * 2, H * 2), Image.NEAREST).save(png, "PNG", optimize=True)
+        r = requests.put(f"{URL}/api/pi/visual", headers={**AUTH, "Content-Type": "image/png"},
+                         params={"guid": item["guid"]}, data=png.getvalue(), timeout=60)
+        r.raise_for_status()
+        requests.post(f"{URL}/api/pi", headers=AUTH, timeout=20, json={
+            "guid": item["guid"], "title": item["title"], "artist": item["artist"], "command": command,
+            "place": item["place"], "visual": r.json()["url"]}).raise_for_status()
+    except requests.RequestException as e:
+        print(f"Compte rendu non envoyé : {e}")
 
 
 def sync():

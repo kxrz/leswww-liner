@@ -1,7 +1,7 @@
 import { login, send } from "./actions";
 import { isLoggedIn } from "@/lib/auth";
 import { getItems, type Item } from "@/lib/feed";
-import { readCommand, readStatus } from "@/lib/store";
+import { listVisuals, readCommand, readStatus, slug } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -32,31 +32,36 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
     );
   }
 
-  const [items, status, command] = await Promise.all([getItems(), readStatus(), readCommand()]);
-  const current = items.find((i) => i.guid === status?.guid);
+  const [items, status, command, visuals] = await Promise.all([getItems(), readStatus(), readCommand(), listVisuals()]);
   const pending = command && command.id > (status?.command ?? 0);
+  const shown = status ? visuals.get(slug(status.guid)) : undefined;
 
   return (
     <main>
       <header>
         <h1>Cadre</h1>
-        <span className="mono">320kbps.club · Lille</span>
+        <span className="mono">320kbps.club</span>
       </header>
 
       <section className="now">
-        <Cover item={current} size={88} />
-        <div>
-          <p className="mono label">à l&apos;écran</p>
-          {status ? (
-            <>
-              <p className="title">{status.title}</p>
+        <p className="mono label">à l&apos;écran</p>
+        {shown && (
+          <a href={shown.url} className="visual">
+            <img src={`${shown.url}?v=${status?.at}`} alt={`${status?.artist} — ${status?.title}`} width={800} height={480} />
+          </a>
+        )}
+        {status ? (
+          <div className="caption">
+            <div>
               <p className="artist">{status.artist}</p>
-              <p className="mono">depuis {time.format(new Date(status.at))}</p>
-            </>
-          ) : (
-            <p className="mono">pas encore de nouvelles du cadre</p>
-          )}
-        </div>
+              <p className="title">{status.title}</p>
+              <p className="mono">{[status.place, `depuis ${time.format(new Date(status.at))}`].filter(Boolean).join(" · ")}</p>
+            </div>
+            {shown && <a href={shown.downloadUrl} className="download">PNG ↓</a>}
+          </div>
+        ) : (
+          <p className="mono">pas encore de nouvelles du cadre</p>
+        )}
       </section>
 
       {(params.envoye || pending) && (
@@ -70,20 +75,24 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
 
       <h2 className="mono label">choisir un titre</h2>
       <ul className="list">
-        {items.map((item) => (
-          <li key={item.guid}>
-            <form action={send}>
-              <input type="hidden" name="guid" value={item.guid} />
-              <button name="action" value="show" className={item.guid === status?.guid ? "row current" : "row"}>
-                <Cover item={item} size={52} />
-                <span>
-                  <span className="title">{item.title}</span>
-                  <span className="artist">{item.artist}{item.album && <em> · album</em>}</span>
-                </span>
-              </button>
-            </form>
-          </li>
-        ))}
+        {items.map((item) => {
+          const visual = visuals.get(slug(item.guid));
+          return (
+            <li key={item.guid} className={item.guid === status?.guid ? "current" : undefined}>
+              <form action={send}>
+                <input type="hidden" name="guid" value={item.guid} />
+                <button name="action" value="show" className="row">
+                  <Cover item={item} size={52} />
+                  <span>
+                    <span className="title">{item.title}</span>
+                    <span className="artist">{item.artist}{item.album && <em> · album</em>}</span>
+                  </span>
+                </button>
+              </form>
+              {visual && <a href={visual.downloadUrl} className="download small" aria-label={`Télécharger le visuel de ${item.title}`}>PNG</a>}
+            </li>
+          );
+        })}
       </ul>
     </main>
   );

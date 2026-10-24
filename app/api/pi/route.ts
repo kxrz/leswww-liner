@@ -22,6 +22,8 @@ export async function POST(request: Request) {
     title: s.title,
     artist: String(s.artist ?? ""),
     command: Number(s.command ?? 0),
+    place: typeof s.place === "string" ? s.place : undefined,
+    visual: typeof s.visual === "string" ? s.visual : undefined,
   });
   return new Response(null, { status: 204 });
 }

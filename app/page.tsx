@@ -175,7 +175,7 @@ export default async function Home() {
             <h2>Want one on your wall? The code is yours.</h2>
             <p>Liner is open source under the MIT License: a Pi, a Pimoroni panel, a frame, and an afternoon.</p>
             <div className="actions">
-              <a href="https://github.com/kxrz/leswww-liner" className="btn accent">Build your own →</a>
+              <a href="https://github.com/kxrz/leswww-liner/blob/main/docs/BUILD.md" className="btn accent">Build your own →</a>
               <a href="https://leswww.com/contact" className="btn secondary inverse">Talk to LesWWW</a>
             </div>
           </div>

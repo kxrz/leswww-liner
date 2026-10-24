@@ -88,6 +88,8 @@ docs/                 sample pictures
 
 ## Set up the frame
 
+The full guide, from parts to calibration, is in **[docs/BUILD.md](docs/BUILD.md)**. In short:
+
 ```sh
 git clone https://github.com/kxrz/leswww-liner.git ~/liner
 cd ~/liner/pi

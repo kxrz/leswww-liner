@@ -144,6 +144,26 @@ export default async function Home() {
             </ol>
           </section>
 
+          <section className="block" id="control-room" aria-labelledby="control-title">
+            <h2 id="control-title">From your phone</h2>
+            <p className="block-lede">
+              A control room that fits in a pocket: what is on the wall and whether the frame is online, the next track
+              or any track you like, another feed to follow, and every picture to download.
+            </p>
+            <div className="phones">
+              {[
+                { src: "now", caption: "What hangs on the wall, and the frame's health", alt: "Control room on a phone: the frame is online, CZARFACE & Frankie Pulitzer on the wall, download buttons, Next track and Redraw" },
+                { src: "request", caption: "A request on its way, step by step", alt: "Control room on a phone: a request is on its way; request sent, frame picks it up, e-ink redraw" },
+                { src: "tracks", caption: "Any track from the feed, any time", alt: "Control room on a phone: a list of tracks with their covers, each with PNG and 4K downloads" },
+              ].map((shot) => (
+                <figure key={shot.src} className="phone">
+                  <img src={`/control/${shot.src}.webp`} alt={shot.alt} width={585} height={1266} loading="lazy" decoding="async" />
+                  <figcaption className="label">{shot.caption}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </section>
+
           <section className="block" id="build" aria-labelledby="build-title">
             <h2 id="build-title">Build it</h2>
             <p className="block-lede">About €140 of parts and an afternoon. No soldering, no subscription.</p>

@@ -28,6 +28,17 @@ A selection of fifteen tracks, as Liner drew them. Click one to listen on 320kbp
 
 **[Listen to more on 320kbps.club →](https://www.320kbps.club)**
 
+## The control room
+
+A page on your phone ([liner.leswww.com/control](https://liner.leswww.com/control), behind a password) to see what is
+on the wall and whether the frame is online, change the track, follow another feed, and download every picture.
+
+<p>
+  <img src="docs/control/now.png" width="32%" alt="Control room: the frame is online, the track on the wall and its downloads">
+  <img src="docs/control/request.png" width="32%" alt="Control room: a request on its way, step by step">
+  <img src="docs/control/tracks.png" width="32%" alt="Control room: tracks from the feed, each with PNG and 4K downloads">
+</p>
+
 ## What is on the wall
 
 - **A duotone map** of the artist's home country, with its neighbours and a dotted graticule; a ring marks the city

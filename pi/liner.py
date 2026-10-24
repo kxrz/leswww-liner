@@ -7,6 +7,7 @@ Pimoroni Inky Impression 7.3" (Spectra 6), 800x480.
   python3 liner.py            draw the newest track not shown yet
   python3 liner.py --sync     carry out the latest request from the web page, if there is a new one
   python3 liner.py --preview  draw preview.png only, leave the screen alone
+  python3 liner.py --seed 15  draw the 15 newest tracks in all versions for the gallery, screen untouched
 
 LINER_URL and LINER_TOKEN (liner.env) link the frame to its web page; without them it runs on its own, without maps.
 LINER_FEED sets the RSS feed to follow by default (the control room can switch it), LINER_VISIBLE the part of the
@@ -389,6 +390,30 @@ def sync():
         show(cmd.get("guid") if cmd["action"] == "show" else None, cmd["id"])
 
 
+def seed(count):
+    """Draw the newest tracks of the feed in all three versions, without touching the screen, for the gallery."""
+    root = ET.fromstring(requests.get(load_state().get("feed", FEED), timeout=20).content)
+    guids = [i.findtext("guid") for i in root.iter("item") if "/playlist/" not in i.findtext("link")][:count]
+    out = HERE / "seed"
+    out.mkdir(exist_ok=True)
+    for guid in guids:
+        try:
+            item = pick_item([], guid, load_state().get("feed", FEED))
+            raw = fetch_cover(item["cover"])
+            now = datetime.now()
+            pictures = {kind: render(item, now, kind, raw) for kind in ("eink", "bw", "hd")}
+            as_seen(pictures["eink"]).save(out / f"{guid.rstrip('/').split('/')[-1]}.png")
+            if URL:
+                for kind, img in pictures.items():
+                    upload(item, kind, img)
+                requests.post(f"{URL}/api/pi/gallery", headers=AUTH, timeout=20, json={
+                    "guid": item["guid"], "title": item["title"], "artist": item["artist"],
+                    "place": item["place"]}).raise_for_status()
+            print(f"Seeded: {item['artist']} — {item['title']} ({item['place'] or 'origin unknown'})")
+        except requests.RequestException as e:
+            print(f"Seed failed for {guid}: {e}")
+
+
 def main():
     # One redraw at a time: the sync skips its turn if the screen is busy.
     lock = open(HERE / ".lock", "w")
@@ -396,7 +421,12 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | (fcntl.LOCK_NB if "--sync" in sys.argv else 0))
     except BlockingIOError:
         return
-    sync() if "--sync" in sys.argv else show()
+    if "--seed" in sys.argv:
+        seed(int(sys.argv[sys.argv.index("--seed") + 1]))
+    elif "--sync" in sys.argv:
+        sync()
+    else:
+        show()
 
 
 if __name__ == "__main__":

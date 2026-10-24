@@ -12,3 +12,4 @@ pi/state.json
 pi/liner.env
 pi/cadre.env
 pi/.lock
+pi/seed/

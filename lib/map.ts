@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import countries from "./countries.json";
+import { readOrigin, writeOrigin } from "./store";
 
 type Pt = [number, number];
 type Ring = Pt[];
@@ -57,15 +58,19 @@ type MbArtist = { name: string; score: number; country?: string; area?: MbArea; 
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[‐‑–]/g, "-").toLowerCase().trim();
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** MusicBrainz could not be reached: not the same as "this artist has no known origin". */
+export class Unavailable extends Error {}
+
 async function searchArtist(name: string): Promise<MbArtist[]> {
   const url = `https://musicbrainz.org/ws/2/artist?fmt=json&limit=5&query=${encodeURIComponent(`artist:"${name}"`)}`;
-  let res = await fetch(url, { headers: UA, cache: "no-store" });
-  if (res.status === 503) {
-    // MusicBrainz allows one request per second and answers "busy" beyond that: retry once
-    await wait(1200);
-    res = await fetch(url, { headers: UA, cache: "no-store" });
+  // MusicBrainz allows about one request per second and often answers "busy" from shared cloud addresses
+  for (const delay of [0, 1500, 3500]) {
+    await wait(delay);
+    const res = await fetch(url, { headers: UA, cache: "no-store" }).catch(() => null);
+    if (res?.ok) return ((await res.json()) as { artists?: MbArtist[] }).artists ?? [];
+    if (res && res.status !== 503 && res.status !== 429) break;
   }
-  return res.ok ? ((await res.json()) as { artists?: MbArtist[] }).artists ?? [] : [];
+  throw new Unavailable(`MusicBrainz did not answer for ${name}`);
 }
 
 /**
@@ -93,6 +98,23 @@ async function artistOrigin(artist: string, hint?: string): Promise<string | nul
     if (a.area) return a.area.name;
   }
   return hint || null;
+}
+
+/** An origin, once found, is kept: the next lookups for that artist (and the HD version) need no MusicBrainz. */
+async function cachedOrigin(artist: string, hint?: string): Promise<string | null> {
+  const key = `${artist}|${hint ?? ""}`;
+  const known = await readOrigin(key);
+  if (known) return known;
+  let origin: string | null;
+  try {
+    origin = await artistOrigin(artist, hint);
+  } catch (e) {
+    // MusicBrainz down: the feed's origin will do for now, but is not kept, so a later lookup can do better
+    if (e instanceof Unavailable && hint) return hint;
+    throw e;
+  }
+  if (origin) await writeOrigin(key, origin);
+  return origin;
 }
 
 function bbox(points: Pt[]): Box {
@@ -133,7 +155,7 @@ export async function renderMap(
   w: number, h: number, box: Box, bg: Ink, ink: Ink,
   style: MapStyle = { s: 1, tone: "ink" },
 ) {
-  const origin = q.artist ? await artistOrigin(q.artist, q.hint) : q.hint;
+  const origin = q.artist ? await cachedOrigin(q.artist, q.hint) : q.hint;
   const place = origin ? await locate(origin) : null;
   if (!place) return null;
 

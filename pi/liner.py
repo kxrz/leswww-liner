@@ -16,6 +16,7 @@ import json
 import os
 import re
 import sys
+import time
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from io import BytesIO
@@ -171,14 +172,21 @@ def origin_map(item, box, bg, ink, hd=False):
         return None, item["country"]
     w, h = HD_SIZE if hd else (VISIBLE[2] - VISIBLE[0], VISIBLE[3] - VISIBLE[1])
     style = {"s": HD_SCALE, "tone": "seen"} if hd else {}
-    try:  # the server works out where the artist comes from; the feed's origin helps it pick between namesakes
-        r = requests.get(f"{URL}/api/map", timeout=90, params={
-            "artist": item["artist"], "hint": item["country"], "v": 3, "w": w, "h": h, **style,
-            "box": ",".join(str(v) for v in box), "bg": INK_NAMES[bg], "ink": INK_NAMES[ink]})
-        r.raise_for_status()
-    except requests.RequestException as e:
-        print(f"No map: {e}")
-        return None, item["country"]
+    params = {"artist": item["artist"], "hint": item["country"], "v": 4, "w": w, "h": h, **style,
+              "box": ",".join(str(v) for v in box), "bg": INK_NAMES[bg], "ink": INK_NAMES[ink]}
+    # The server works out where the artist comes from (the feed's origin helps it pick between namesakes).
+    # It answers 503 when MusicBrainz is busy: worth a second try.
+    for attempt in (1, 2):
+        try:
+            r = requests.get(f"{URL}/api/map", timeout=90, params=params)
+            r.raise_for_status()
+            break
+        except requests.RequestException as e:
+            busy = isinstance(e, requests.HTTPError) and e.response.status_code == 503
+            if attempt == 2 or not busy:
+                print(f"No map: {e}")
+                return None, item["country"]
+            time.sleep(10)
     img = Image.open(BytesIO(r.content)).convert("RGB")
     if not hd:
         pal = Image.new("P", (1, 1))

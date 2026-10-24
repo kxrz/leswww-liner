@@ -51,6 +51,18 @@ export const writeCommand = (c: Command) => write(COMMAND, c);
 export const readStatus = () => read<Status>(STATUS);
 export const writeStatus = (s: Status) => write(STATUS, s);
 
+/** Where an artist comes from, once worked out (see lib/map.ts). Keyed by artist and feed hint. */
+const ORIGINS = "liner/origins/";
+const originPath = (key: string) => `${ORIGINS}${encodeURIComponent(key.toLowerCase()).replace(/%/g, "_")}.json`;
+
+export async function readOrigin(key: string): Promise<string | null> {
+  return (await read<{ origin: string }>(originPath(key)))?.origin ?? null;
+}
+
+export async function writeOrigin(key: string, origin: string): Promise<void> {
+  await write(originPath(key), { origin });
+}
+
 /** "https://www.320kbps.club/track/balthazar-linger-on" → "track-balthazar-linger-on". */
 export function slug(guid: string): string {
   return new URL(guid).pathname.split("/").filter(Boolean).join("-").replace(/[^a-z0-9-]/gi, "");

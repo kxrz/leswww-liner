@@ -1,4 +1,4 @@
-import { INKS, renderMap, type Ink, type MapStyle } from "@/lib/map";
+import { INKS, renderMap, Unavailable, type Ink, type MapStyle } from "@/lib/map";
 
 /**
  * Map of where an artist comes from, as a PNG in the panel's inks. Cached by the CDN forever.
@@ -23,8 +23,15 @@ export async function GET(request: Request) {
     return new Response("Bad request", { status: 400 });
   }
 
-  const map = await renderMap({ artist, hint }, w, h, { x0, y0, x1, y1 }, bg, ink, style);
-  if (!map) return new Response("Not found", { status: 404, headers: { "Cache-Control": "public, s-maxage=600" } });
+  let map;
+  try {
+    map = await renderMap({ artist, hint }, w, h, { x0, y0, x1, y1 }, bg, ink, style);
+  } catch (e) {
+    // MusicBrainz busy: a temporary failure, never cached, so the frame can simply ask again
+    if (e instanceof Unavailable) return new Response("Try again", { status: 503, headers: { "Cache-Control": "no-store" } });
+    throw e;
+  }
+  if (!map) return new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
   return new Response(new Uint8Array(map.png), {
     headers: {
       "Content-Type": "image/png",

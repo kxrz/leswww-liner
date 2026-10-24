@@ -1,6 +1,7 @@
 {
-  "name": "tekpi-eink",
+  "name": "liner",
   "version": "1.0.0",
+  "description": "Liner by 320kbps.club: an e-ink frame that hangs one track at a time",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -1,5 +1,5 @@
 [Unit]
-Description=Cadre e-ink : mise à jour de l'affichage
+Description=Liner: redraw the e-ink frame
 Wants=network-online.target
 After=network-online.target time-sync.target
 
@@ -7,6 +7,6 @@ After=network-online.target time-sync.target
 Type=oneshot
 User=pi
 WorkingDirectory=/home/pi/tekpi-eink/pi
-EnvironmentFile=-/home/pi/tekpi-eink/pi/cadre.env
-ExecStart=/usr/bin/python3 /home/pi/tekpi-eink/pi/cadre.py
+EnvironmentFile=-/home/pi/tekpi-eink/pi/liner.env
+ExecStart=/usr/bin/python3 /home/pi/tekpi-eink/pi/liner.py
 TimeoutStartSec=300

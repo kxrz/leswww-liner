@@ -1,7 +1,7 @@
 import { isDevice } from "@/lib/auth";
 import { saveVisual } from "@/lib/store";
 
-/** Le Pi dépose le visuel qu'il vient d'afficher : PUT /api/pi/visual?guid=…, corps image/png. */
+/** The frame uploads the picture it just drew: PUT /api/pi/visual?guid=…, image/png body. */
 export async function PUT(request: Request) {
   if (!isDevice(request)) return new Response("Unauthorized", { status: 401 });
   const guid = new URL(request.url).searchParams.get("guid");

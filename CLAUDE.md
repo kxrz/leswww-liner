@@ -1,19 +1,22 @@
 # CLAUDE.md
 
-Lire `README.md` d'abord : architecture, installation, choix de rendu.
+Read `README.md` first: architecture, setup, design notes. Liner is a 320kbps.club product: user-facing text,
+code and commits are in English.
 
-## À respecter
+## Ground rules
 
-- **La mise en page se fait sur le Pi** (`pi/cadre.py`, Pillow). Le site transmet les demandes et rend seulement la carte (`/api/map`).
-- **Rester simple.** Un seul script Python côté Pi ; côté web une page, deux routes (synchro, carte), deux fichiers JSON dans Blob.
-  Pas de base de données, pas de framework CSS, pas de dépendance qui ne serait pas indispensable.
-- **Texte jamais lissé ni tramé** (`d.fontmode = "1"`), encres pures uniquement. Seule la pochette est tramée.
-- **Dalle Spectra 6** : noir, blanc, jaune, rouge, bleu, vert. Pas d'orange.
-- **Zone visible** : rien en dehors de `VISIBLE` (le passe-partout masque les bords).
-- Le Pi vit dans `/home/pi/tekpi-eink` (clone de ce dépôt) ; `pi/cadre.env` et `pi/state.json` ne sont pas versionnés.
-- Avant d'afficher une nouvelle mise en page, la vérifier avec `python3 cadre.py --preview` : un rafraîchissement
-  coûte 30 secondes et un cycle de dalle.
+- **The Pi draws the layout** (`pi/liner.py`, Pillow). The web side relays requests, stores pictures and draws
+  only the map (`/api/map`).
+- **Keep it small.** One Python script on the Pi; on the web, one page, a few routes, a few JSON files and PNGs in
+  Blob. No database, no CSS framework, no dependency that is not essential.
+- **Text is never antialiased or dithered** (`d.fontmode = "1"`), pure inks only. Only the cover is dithered.
+- **Spectra 6 panel**: black, white, yellow, red, blue, green. No orange.
+- **Visible area**: nothing outside `VISIBLE` (the mat hides the edges). Keep `pi/liner.py` and `lib/frame.ts` in sync.
+- **sharp is pinned to 0.34.5**: 0.35 cannot load libvips on Vercel.
+- The Pi runs from `/home/pi/tekpi-eink` (a clone of this repo); `pi/liner.env` and `pi/state.json` are not tracked.
+- Check a new layout with `python3 liner.py --preview` before a real redraw: each one takes 30 seconds and a panel
+  cycle. With `liner.env` loaded, the preview includes the map.
 
-## Accès au Pi
+## Access
 
-`ssh pi@raspberrypi.local` (clé SSH), sudo sans mot de passe.
+`ssh pi@raspberrypi.local` (SSH key), passwordless sudo.

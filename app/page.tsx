@@ -1,19 +1,22 @@
 import { login, send } from "./actions";
+import { NowPlaying } from "./NowPlaying";
 import { isLoggedIn } from "@/lib/auth";
 import { getItems, type Item } from "@/lib/feed";
 import { listVisuals, readCommand, readStatus, slug } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-const time = new Intl.DateTimeFormat("fr-FR", {
-  weekday: "long",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Europe/Paris",
-});
-
 function Cover({ item, size }: { item?: Item; size: number }) {
   return item?.cover ? <img src={item.cover} alt="" width={size} height={size} className="cover" /> : <div className="cover" style={{ width: size, height: size }} />;
+}
+
+function Header() {
+  return (
+    <header>
+      <h1>Liner</h1>
+      <a href="https://www.320kbps.club" className="mono">by 320kbps.club</a>
+    </header>
+  );
 }
 
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -22,58 +25,33 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   if (!(await isLoggedIn())) {
     return (
       <main>
-        <h1>Cadre</h1>
+        <Header />
+        <p className="lede">An e-ink frame that hangs one track at a time, like a work in a museum.</p>
         <form action={login} className="login">
-          <input type="password" name="password" placeholder="Mot de passe" autoFocus required />
-          <button type="submit">Entrer</button>
+          <input type="password" name="password" placeholder="Password" autoFocus required />
+          <button type="submit">Enter</button>
         </form>
-        {params.erreur && <p className="note">Mot de passe incorrect.</p>}
+        {params.wrong && <p className="note">Wrong password.</p>}
       </main>
     );
   }
 
   const [items, status, command, visuals] = await Promise.all([getItems(), readStatus(), readCommand(), listVisuals()]);
-  const pending = command && command.id > (status?.command ?? 0);
-  const shown = status ? visuals.get(slug(status.guid)) : undefined;
+  const requested = Math.max(Number(params.sent) || 0, command?.id ?? 0);
+  const pending = requested > (status?.command ?? 0) ? requested : null;
 
   return (
     <main>
-      <header>
-        <h1>Cadre</h1>
-        <span className="mono">320kbps.club</span>
-      </header>
+      <Header />
 
-      <section className="now">
-        <p className="mono label">à l&apos;écran</p>
-        {shown && (
-          <a href={shown.url} className="visual">
-            <img src={`${shown.url}?v=${status?.at}`} alt={`${status?.artist} — ${status?.title}`} width={800} height={480} />
-          </a>
-        )}
-        {status ? (
-          <div className="caption">
-            <div>
-              <p className="artist">{status.artist}</p>
-              <p className="title">{status.title}</p>
-              <p className="mono">{[status.place, `depuis ${time.format(new Date(status.at))}`].filter(Boolean).join(" · ")}</p>
-            </div>
-            {shown && <a href={shown.downloadUrl} className="download">PNG ↓</a>}
-          </div>
-        ) : (
-          <p className="mono">pas encore de nouvelles du cadre</p>
-        )}
-      </section>
-
-      {(params.envoye || pending) && (
-        <p className="note">Demande envoyée. Le cadre la prend en compte dans la minute, puis met environ 30 secondes à se redessiner.</p>
-      )}
+      <NowPlaying status={status} visual={status ? visuals.get(slug(status.guid)) : undefined} pending={pending} />
 
       <form action={send} className="actions">
-        <button name="action" value="next">Titre suivant</button>
-        <button name="action" value="refresh" className="secondary">Rafraîchir</button>
+        <button name="action" value="next" disabled={!!pending}>Next track</button>
+        <button name="action" value="refresh" className="secondary" disabled={!!pending}>Redraw</button>
       </form>
 
-      <h2 className="mono label">choisir un titre</h2>
+      <h2 className="mono label">Pick a track</h2>
       <ul className="list">
         {items.map((item) => {
           const visual = visuals.get(slug(item.guid));
@@ -81,7 +59,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
             <li key={item.guid} className={item.guid === status?.guid ? "current" : undefined}>
               <form action={send}>
                 <input type="hidden" name="guid" value={item.guid} />
-                <button name="action" value="show" className="row">
+                <button name="action" value="show" className="row" disabled={!!pending}>
                   <Cover item={item} size={52} />
                   <span>
                     <span className="title">{item.title}</span>
@@ -89,11 +67,29 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
                   </span>
                 </button>
               </form>
-              {visual && <a href={visual.downloadUrl} className="download small" aria-label={`Télécharger le visuel de ${item.title}`}>PNG</a>}
+              {visual && <a href={visual.downloadUrl} className="download small" aria-label={`Download the picture for ${item.title}`}>PNG</a>}
             </li>
           );
         })}
       </ul>
+
+      <section className="about">
+        <h2 className="mono label">About</h2>
+        <p>
+          <strong>Liner</strong> hangs one track from <a href="https://www.320kbps.club">320kbps.club</a> on the wall at a
+          time, twice a day: the cover and its liner notes on a museum-style label, laid over a map of where the artist
+          comes from.
+        </p>
+        <dl>
+          <dt>Computer</dt><dd>Raspberry Pi Zero 2 W</dd>
+          <dt>Screen</dt><dd>Pimoroni Inky Impression 7.3&quot; Spectra 6 · 800 × 480 · six inks</dd>
+          <dt>Refresh</dt><dd>7:00 and 19:00, or from this page</dd>
+          <dt>Maps</dt><dd>Natural Earth · MusicBrainz · OpenStreetMap</dd>
+        </dl>
+        <p className="mono">
+          <a href="https://github.com/kxrz/tekpi-eink">Source on GitHub</a>
+        </p>
+      </section>
     </main>
   );
 }

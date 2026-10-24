@@ -1,11 +1,11 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
-export const COOKIE = "cadre";
+export const COOKIE = "liner_session";
 
-/** Ce qu'on garde en cookie : une empreinte du mot de passe, jamais le mot de passe lui-même. */
+/** What the cookie holds: a fingerprint of the password, never the password itself. */
 export function fingerprint(password: string): string {
-  return createHash("sha256").update(`tekpi:${password}`).digest("hex");
+  return createHash("sha256").update(`liner:${password}`).digest("hex");
 }
 
 function same(a: string, b: string): boolean {

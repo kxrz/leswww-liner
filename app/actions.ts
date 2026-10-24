@@ -16,7 +16,7 @@ export async function login(form: FormData) {
     });
     redirect("/");
   }
-  redirect("/?erreur=1");
+  redirect("/?wrong=1");
 }
 
 export async function send(form: FormData) {
@@ -27,5 +27,5 @@ export async function send(form: FormData) {
   const guid = form.get("guid");
   if (action === "show" && typeof guid === "string") command.guid = guid;
   await writeCommand(command);
-  redirect("/?envoye=1");
+  redirect(`/?sent=${command.id}`);
 }

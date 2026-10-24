@@ -11,9 +11,9 @@ const COUNTRIES = countries as unknown as Record<string, Country>;
 const BY_NAME = new Map(
   Object.values(COUNTRIES).flatMap((c) => c.names.map((n) => [n.toLowerCase(), c] as const)),
 );
-const UA = { "User-Agent": "tekpi-eink (https://github.com/kxrz/tekpi-eink)", "Accept-Language": "en" };
+const UA = { "User-Agent": "Liner by 320kbps.club (https://github.com/kxrz/tekpi-eink)", "Accept-Language": "en" };
 
-// Encres pures de la dalle : le Pi les retrouve à l'identique, sans tramage.
+// The panel's pure inks: the frame maps them back exactly, without dithering.
 export const INKS = {
   black: "#000000", white: "#ffffff", yellow: "#ffff00", red: "#ff0000", blue: "#0000ff", green: "#00ff00",
 };
@@ -24,8 +24,8 @@ function countryLabel(c: Country): string {
 }
 
 /**
- * « Belgium » est un pays ; « Beverly Hills » est géocodé (Nominatim). Les appels externes ne sont pas mis en cache :
- * une erreur passagère y resterait. C'est l'image finale que le CDN garde.
+ * "Belgium" is a country; "Beverly Hills" gets geocoded (Nominatim). External lookups are not cached, or a
+ * transient error would stick: the CDN keeps the final image instead.
  */
 async function locate(origin: string): Promise<Place | null> {
   const country = BY_NAME.get(origin.toLowerCase());
@@ -52,7 +52,7 @@ async function searchArtist(name: string): Promise<MbArtist[]> {
   const url = `https://musicbrainz.org/ws/2/artist?fmt=json&limit=5&query=${encodeURIComponent(`artist:"${name}"`)}`;
   let res = await fetch(url, { headers: UA, cache: "no-store" });
   if (res.status === 503) {
-    // MusicBrainz limite à une requête par seconde et répond « occupé » au-delà : on retente une fois
+    // MusicBrainz allows one request per second and answers "busy" beyond that: retry once
     await wait(1200);
     res = await fetch(url, { headers: UA, cache: "no-store" });
   }
@@ -60,10 +60,10 @@ async function searchArtist(name: string): Promise<MbArtist[]> {
 }
 
 /**
- * D'où vient l'artiste. Le flux de 320kbps.club donne le lieu où il est *installé* (l'« area » de MusicBrainz :
- * Beverly Hills pour Thomas Bangalter) ; on cherche le lieu de naissance ou de formation (« begin-area » : Paris).
- * `hint`, l'origine du flux, sert à choisir le bon homonyme (Deluxe d'Aix-en-Provence, pas Samy Deluxe).
- * Une collaboration « A & B » est résolue par le premier artiste connu. Faute de mieux, on garde `hint`.
+ * Where the artist comes from. The 320kbps.club feed gives where they *live* (MusicBrainz "area": Beverly Hills
+ * for Thomas Bangalter); we want where they were born or formed ("begin-area": Paris).
+ * `hint`, the feed's origin, picks the right namesake (Deluxe from Aix-en-Provence, not Samy Deluxe).
+ * A collaboration "A & B" resolves to the first known artist. Failing all that, `hint` it is.
  */
 async function artistOrigin(artist: string, hint?: string): Promise<string | null> {
   const names = [artist, ...artist.split(/\s*(?:&|,|\+| feat\.? | x )\s*/i)].filter((n, i, all) => n && all.indexOf(n) === i);
@@ -77,8 +77,8 @@ async function artistOrigin(artist: string, hint?: string): Promise<string | nul
     const a = exact.find(fits) ?? exact[0];
     const country = a.country ? COUNTRIES[a.country] : undefined;
     const begin = a["begin-area"];
-    if (begin?.type === "Country") return begin.name; // né dans un pays, installé dans un autre : le pays natal
-    // La ville seule : le pays de résidence la fausserait (Julia Kent, née à Vancouver, vit aux États-Unis)
+    if (begin?.type === "Country") return begin.name; // born in one country, living in another: the home country
+    // The city alone: adding the country they live in would skew it (Julia Kent, born in Vancouver, lives in the US)
     if (begin && ["City", "Municipality", "District"].includes(begin.type ?? "")) return begin.name;
     if (country) return countryLabel(country);
     if (a.area) return a.area.name;
@@ -100,7 +100,7 @@ function area(ring: Ring): number {
   return Math.abs(a / 2);
 }
 
-/** Le territoire principal et ce qui l'entoure : on écarte l'Alaska, Hawaï ou les DOM, qui écraseraient la carte. */
+/** The main territory and what lies near it: Alaska, Hawaii or overseas departments would squash the map. */
 function mainland(rings: Ring[], point?: Pt): Ring[] {
   const m = bbox(rings.reduce((a, b) => (area(b) > area(a) ? b : a)));
   const mx = (m.x1 - m.x0) * 0.3;
@@ -116,8 +116,8 @@ function mainland(rings: Ring[], point?: Pt): Ring[] {
 }
 
 /**
- * Carte en duotone sur toute la toile (w × h) : fond uni, graticule en pointillés, pays voisins au trait fin,
- * pays d'origine au trait épais et tramé, cercle sur la ville. Le pays est cadré dans `box`.
+ * Duotone map over the whole canvas (w × h): flat background, dotted graticule, neighbours in a thin line,
+ * the home country in a thick line with a dot screen, a ring on the city. The country is fitted inside `box`.
  */
 export async function renderMap(
   q: { artist?: string; hint?: string },
@@ -129,7 +129,7 @@ export async function renderMap(
 
   const main = mainland(place.country.rings, place.point);
   const b = bbox(main.flat());
-  const k = Math.cos((((b.y0 + b.y1) / 2) * Math.PI) / 180); // équirectangulaire corrigée de la latitude
+  const k = Math.cos((((b.y0 + b.y1) / 2) * Math.PI) / 180); // equirectangular, corrected for latitude
   const scale = Math.min((box.x1 - box.x0) / ((b.x1 - b.x0) * k), (box.y1 - box.y0) / (b.y1 - b.y0));
   const ox = (box.x0 + box.x1) / 2 - ((b.x0 + b.x1) / 2) * k * scale;
   const oy = (box.y0 + box.y1) / 2 + ((b.y0 + b.y1) / 2) * scale;
@@ -137,7 +137,7 @@ export async function renderMap(
   const py = (y: number) => oy - y * scale;
   const path = (rings: Ring[]) => rings.map((r) => `M${r.map(([x, y]) => `${px(x).toFixed(1)} ${py(y).toFixed(1)}`).join("L")}Z`).join("");
 
-  // Ce que la toile montre, en degrés : pour le graticule et le choix des voisins
+  // What the canvas shows, in degrees: for the graticule and picking neighbours
   const view = { x0: -ox / (k * scale), x1: (w - ox) / (k * scale), y0: (oy - h) / scale, y1: oy / scale };
   const span = Math.max(view.x1 - view.x0, view.y1 - view.y0);
   const step = [0.5, 1, 2, 5, 10, 15, 30].find((s) => span / s <= 9) ?? 30;

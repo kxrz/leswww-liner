@@ -1,9 +1,9 @@
 import { INKS, renderMap, type Ink } from "@/lib/map";
 
 /**
- * Carte de l'origine d'un artiste, en PNG aux encres de la dalle. Mise en cache par le CDN, pour toujours.
+ * Map of where an artist comes from, as a PNG in the panel's inks. Cached by the CDN forever.
  * ?artist=Balthazar&hint=Belgium&w=696&h=445&box=x0,y0,x1,y1&bg=blue&ink=white
- * `hint` est l'origine donnée par le flux ; sans `artist`, c'est elle qui est cartographiée.
+ * `hint` is the origin given by the feed; without `artist`, that is what gets mapped.
  */
 export async function GET(request: Request) {
   const q = new URL(request.url).searchParams;

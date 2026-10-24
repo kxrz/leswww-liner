@@ -14,7 +14,7 @@ function tag(block: string, name: string): string {
   return decode(block.match(new RegExp(`<${name}>([\\s\\S]*?)</${name}>`))?.[1].trim() ?? "");
 }
 
-/** Les morceaux et albums du flux, du plus récent au plus ancien (les playlists sont écartées). */
+/** Tracks and albums from the feed, newest first (playlists are left out). */
 export async function getItems(): Promise<Item[]> {
   const xml = await fetch(FEED, { next: { revalidate: 600 } }).then((r) => r.text());
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)]

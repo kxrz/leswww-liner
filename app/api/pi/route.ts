@@ -3,13 +3,13 @@ import { readCommand, writeStatus, type Status } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-/** Le Pi demande s'il y a quelque chose à faire. */
+/** The frame asks whether there is anything to do. */
 export async function GET(request: Request) {
   if (!isDevice(request)) return new Response("Unauthorized", { status: 401 });
   return Response.json((await readCommand()) ?? { id: 0, action: "none" });
 }
 
-/** Le Pi rapporte ce qu'il vient d'afficher. */
+/** The frame reports what it just drew. */
 export async function POST(request: Request) {
   if (!isDevice(request)) return new Response("Unauthorized", { status: 401 });
   const s = (await request.json()) as Partial<Status>;

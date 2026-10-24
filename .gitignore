@@ -9,5 +9,6 @@ next-env.d.ts
 __pycache__/
 pi/preview.png
 pi/state.json
+pi/liner.env
 pi/cadre.env
 pi/.lock

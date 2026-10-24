@@ -1,5 +1,5 @@
 [Unit]
-Description=Cadre e-ink : nouveau titre matin et soir
+Description=Liner: a new track every morning and evening
 
 [Timer]
 OnCalendar=*-*-* 07:00:00

@@ -1,5 +1,5 @@
 [Unit]
-Description=Cadre e-ink : interroge la page web chaque minute, de 7h à minuit
+Description=Liner: check the web page every minute, 7:00 to midnight
 
 [Timer]
 OnCalendar=*-*-* 07..23:*:00

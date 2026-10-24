@@ -1,141 +1,152 @@
-# tekpi-eink
+# Liner
 
-Un cadre e-ink posé dans le salon, entièrement consacré à la musique : chaque titre de
-[320kbps.club](https://www.320kbps.club) y est présenté comme une œuvre, avec son cartel de musée posé sur la carte
-d'où vient l'artiste. Un nouveau titre matin et soir, et une petite page web pour en changer depuis le téléphone.
+**An e-ink frame that hangs one track at a time from [320kbps.club](https://www.320kbps.club), like a work in a museum.**
 
-```
-┌──────────────────────────────────────────────┐
-│ ░  ┆        ┆         ┆          ┆           │  fond uni, graticule en pointillés
-│ ┌────────────┐  ┆  ╭──────╮      ┆           │
-│ │  pochette  │    ╱ ::::::: ╲───╮            │  pays voisins au trait fin,
-│ │   tramée   │ ──┤ :::: ◎ :::: │  ┆          │  pays d'origine épais et tramé,
-│ │            │    ╲ :::::::::  ╱             │  cercle sur la ville
-│ ├────────────┤     ╰────────╯   ┆           │
-│ │ Balthazar  │  ┆        ┆         ┆          │
-│ │ Linger On  │                                │  cartel : artiste, titre,
-│ │ 2021 · PIAS│  ┆        ┆         ┆          │  album, année, label, origine
-│ └────────────┘▌                               │
-└──────────────────────────────────────────────┘
-```
+The cover and its liner notes sit on a museum label, laid over a map of where the artist comes from.
+A new track every morning and evening, and a small web page to change it from your phone.
 
-- **Le fond et la carte** forment un duotone choisi d'après l'encre dominante de la pochette :
-  bleu et blanc, rouge et blanc, vert et blanc, jaune et noir, ou blanc et noir pour une pochette sans couleur franche.
-- **La carte** montre le pays de l'artiste, ses voisins et un graticule ; un cercle marque la ville quand l'origine en
-  est une. Sans origine dans le flux (les albums), l'artiste est cherché dans MusicBrainz.
-- **Le cartel**, carte blanche avec une ombre portée : la pochette tramée sur les six encres, l'artiste, le titre,
-  puis album, année, style, label et origine.
+<p>
+  <img src="docs/balthazar.png" width="49%" alt="Balthazar, Linger On: label over a green map of Belgium, Kortrijk circled">
+  <img src="docs/bangalter.png" width="49%" alt="Thomas Bangalter, Circonvolutions: label over a blue map of France, Paris circled">
+  <img src="docs/magugu.png" width="49%" alt="Magugu & Le Motel, Bitter Better: label over a red map of Nigeria">
+  <img src="docs/the-verve.png" width="49%" alt="The Verve, Bitter Sweet Symphony: label over a black and white map of the United Kingdom, Wigan circled">
+</p>
 
-## Matériel
+## What is on the wall
 
-- Raspberry Pi Zero 2 W, Raspberry Pi OS Bookworm
-- Pimoroni Inky Impression 7,3" **Spectra 6** (800 × 480, six encres : noir, blanc, jaune, rouge, bleu, vert)
-- Un cadre photo avec passe-partout, qui masque les bords de l'écran (voir [Zone visible](#zone-visible))
+- **A duotone map** of the artist's home country, with its neighbours and a dotted graticule; a ring marks the city
+  when there is one. The duotone comes from the cover's dominant ink: blue and white, red and white, green and white,
+  yellow and black, or black and white when the cover has no strong colour.
+- **A museum label** on top: the cover, dithered onto the panel's six inks, then artist, title, album, year, label
+  and origin.
+- **Where the artist comes from**, not where they live: Thomas Bangalter is from Paris, even if the feed says
+  Beverly Hills (see [Origins](#origins)).
 
-## Comment ça marche
+## Hardware
 
-```
-   téléphone                Vercel                      Raspberry Pi
- ┌───────────┐  bouton  ┌───────────────┐   GET /api/pi   ┌────────────────┐
- │ page web  │ ───────► │ command.json  │ ◄────────────── │ cadre.py --sync│  chaque minute, 7h–minuit
- └───────────┘          │ (Vercel Blob) │                 └───────┬────────┘
-       ▲                │  status.json  │ ◄── POST /api/pi ───────┤ après chaque affichage
-       └── « à l'écran » └───────────────┘                         │
-                                                          ┌───────┴────────┐
-                                                          │ cadre.py       │  7h et 19h
-                                                          └────────────────┘
-```
+| | |
+|---|---|
+| Computer | Raspberry Pi Zero 2 W, Raspberry Pi OS Bookworm (Lite is enough) |
+| Screen | [Pimoroni Inky Impression 7.3"](https://shop.pimoroni.com/products/inky-impression-7-3) **Spectra 6** (800 × 480; black, white, yellow, red, blue, green) |
+| Frame | Any photo frame with a mat. The mat hides the edges of the panel, so the layout stays inside the [visible area](#visible-area) |
 
-Le Pi est derrière la box : Vercel ne peut pas le joindre. C'est donc lui qui interroge la page chaque minute.
-Une demande met au plus une à deux minutes à être prise en compte, plus une trentaine de secondes de rafraîchissement de la dalle.
+Two panels are sold as "Inky Impression 7.3"": this code targets the 2025 Spectra 6 (no orange ink).
 
-La mise en page est dessinée **sur le Pi**, en Python avec Pillow. Seule la carte est calculée par Vercel
-(`/api/map`, un PNG aux encres de la dalle mis en cache par le CDN) : contours des pays et géocodage restent
-hors du Pi Zero.
-
-- **7h et 19h** : le prochain titre du flux pas encore affiché.
-- **Depuis la page** : « Titre suivant », « Rafraîchir » (même titre, redessiné) ou n'importe quel titre du flux.
-
-Sans connexion à la page (pas de `cadre.env`), le cadre fonctionne seul, matin et soir, sans carte.
-
-## Le dépôt
+## How it works
 
 ```
-app/                 page mobile (Next.js), routes /api/pi (synchro) et /api/map (carte)
+   phone                    Vercel                        Raspberry Pi
+ ┌───────────┐ request ┌────────────────┐  GET /api/pi   ┌──────────────────┐
+ │ web page  │ ──────► │ command.json   │ ◄───────────── │ liner.py --sync  │  every minute, 7:00–midnight
+ └─────┬─────┘         │ (Vercel Blob)  │                └────────┬─────────┘
+       │ ◄──────────── │ status.json    │ ◄── POST ───────────────┤ after each redraw,
+       │  picture, PNG │ pictures/*.png │ ◄── PUT  ───────────────┤ with the picture
+       │               └───────┬────────┘                         │
+       │                       │ GET /api/map  ◄──────────────────┤ map of the artist's origin
+       │                       ▼                         ┌────────┴─────────┐
+       │                 MusicBrainz, Nominatim          │ liner.py         │  7:00 and 19:00
+       │                 Natural Earth outlines          └──────────────────┘
+```
+
+- The Pi sits behind a home router, so Vercel cannot reach it: **the Pi polls** the page every minute. A request
+  takes up to a minute to be picked up, then about 30 seconds of e-ink redraw. The page follows along and flashes
+  when the frame is done.
+- **The Pi draws the layout** (Python, Pillow). **Vercel draws the map** (`/api/map`, SVG rasterised by sharp, cached
+  by the CDN for good), so outlines, geocoding and MusicBrainz stay off the Pi Zero.
+- Every picture the frame draws is uploaded, shown on the page in a frame mockup, and **downloadable as a PNG**.
+- Without the web page (no `liner.env`), the frame still runs on its own, twice a day, without maps.
+
+## Repository
+
+```
+app/                  web page (Next.js) and API routes
+  NowPlaying.tsx      frame mockup, request tracking, flash when the frame is done
+  api/pi/             the frame: poll for requests, report a redraw, upload its picture
+  api/map/            duotone map of an artist's origin, as a PNG in the panel's inks
+  api/status/         polled by the page while a request is on its way
 lib/
-  feed.ts            lecture du flux RSS de 320kbps.club
-  store.ts           command.json et status.json dans Vercel Blob
-  auth.ts            mot de passe de la page, jeton du Pi
-  map.ts             carte d'origine en duotone : graticule, voisins, pays, ville → PNG
-  countries.json     contours des pays (Natural Earth 1:50m, simplifiés)
+  feed.ts             320kbps.club RSS feed
+  map.ts              origin lookup (MusicBrainz, Nominatim) and map drawing
+  store.ts            requests, status and pictures in Vercel Blob
+  frame.ts            panel size and visible area, shared with the mockup
+  countries.json      country outlines (Natural Earth 1:50m, simplified)
 pi/
-  cadre.py           tout le cadre : données, mise en page, affichage, synchro
-  fonts/             IBM Plex Sans (variable) et IBM Plex Mono
-  systemd/           cadre.timer (7h, 19h) et cadre-sync.timer (chaque minute)
-  install.sh         installe les dépendances et les services
-  cadre.env.example  adresse de la page et jeton
+  liner.py            the frame: data, layout, display, sync
+  fonts/              IBM Plex Sans (variable) and IBM Plex Mono
+  systemd/            liner.timer (7:00, 19:00) and liner-sync.timer (every minute)
+  install.sh          installs dependencies and services
+docs/                 sample pictures
 ```
 
-## Installer le Pi
+## Set up the frame
 
 ```sh
 git clone https://github.com/kxrz/tekpi-eink.git ~/tekpi-eink
 cd ~/tekpi-eink/pi
-cp cadre.env.example cadre.env   # puis renseigner CADRE_TOKEN
+cp liner.env.example liner.env   # then fill in LINER_TOKEN
 ./install.sh
 ```
 
-Le SPI et l'I2C doivent être activés (`sudo raspi-config` › Interface Options).
-
-Mettre à jour : `cd ~/tekpi-eink && git pull && pi/install.sh`.
-
-### Au quotidien
+Enable SPI and I2C first (`sudo raspi-config` › Interface Options). Update with
+`cd ~/tekpi-eink && git pull && pi/install.sh`.
 
 | | |
 |---|---|
-| Afficher le titre suivant tout de suite | `sudo systemctl start cadre` |
-| Voir ce qui s'est passé | `journalctl -u cadre -u cadre-sync -n 30` |
-| Prochains déclenchements | `systemctl list-timers 'cadre*'` |
-| Tester une mise en page sans toucher l'écran | `python3 cadre.py --preview` puis ouvrir `preview.png` |
+| Next track now | `sudo systemctl start liner` |
+| What happened | `journalctl -u liner -u liner-sync -n 30` |
+| Next runs | `systemctl list-timers 'liner*'` |
+| Try a layout without touching the screen | `python3 liner.py --preview`, then open `preview.png` |
 
-`state.json` retient les titres déjà affichés et la dernière demande traitée. Le supprimer fait repartir du titre le plus récent.
+`state.json` remembers the tracks already shown and the last request handled; delete it to start again from the
+newest track.
 
-## Déployer la page
+## Deploy the web page
 
-Le projet Vercel `tekpi-eink` est relié à ce dépôt : chaque push sur `main` déploie.
+The Vercel project is linked to this repository: every push to `main` deploys. Connect a Blob store, then set:
 
-| Variable | Rôle |
+| Variable | |
 |---|---|
-| `BLOB_READ_WRITE_TOKEN` | Accès au store Blob, posée par Vercel quand le store est relié au projet |
-| `SITE_PASSWORD` | Mot de passe de la page. Sans elle, la page est ouverte à tous |
-| `DEVICE_TOKEN` | Jeton du Pi, identique à `CADRE_TOKEN` dans `pi/cadre.env`. Sans lui, `/api/pi` est ouverte |
+| `BLOB_READ_WRITE_TOKEN` | Set by Vercel when the Blob store is connected |
+| `SITE_PASSWORD` | Password for the page. Without it, the page is open to anyone |
+| `DEVICE_TOKEN` | The frame's token, same as `LINER_TOKEN` in `pi/liner.env`. Without it, `/api/pi` is open |
 
-Sur le téléphone, « Ajouter à l'écran d'accueil » donne une petite app.
+On a phone, "Add to Home Screen" turns the page into a small app. Locally: `npm install && npm run dev`, with a
+`.env.local` (see `.env.example`).
 
-En local : `npm install && npm run dev` (avec un `.env.local`, voir `.env.example`).
+## Design notes
 
-## Choix de rendu
+### Inks
 
-- **Texte sans anticrénelage.** Les pixels gris du lissage tomberaient sur la couleur la plus proche,
-  souvent le bleu : chaque lettre aurait un liseré. Le texte est rendu net, en encres pures.
-- **Seule la pochette est tramée** (Floyd-Steinberg), vers les couleurs *réellement* rendues par la dalle :
-  le mélange à 50 % des palettes `SATURATED_PALETTE` et `DESATURATED_PALETTE` du pilote Pimoroni, comme le fait
-  `set_image()` par défaut. L'image finale est envoyée en mode « P » à six couleurs exactes : le pilote ne retrame rien.
-- **La couleur vient de la pochette** : l'encre de couleur qui en couvre au moins 12 % choisit le duotone du fond
-  et de la carte. Le cartel reste noir sur blanc, seule la signature 320kbps.club est en rouge.
-- **La carte** est rendue en SVG `crispEdges` puis rastérisée par sharp ; le Pi la ramène à la palette sans tramage.
-- **L'aperçu** (`preview.png`) utilise les couleurs de l'encre : son fond grisâtre est celui de l'écran réel.
+- **Text is never antialiased** (`fontmode = "1"`). Grey edge pixels would snap to the nearest ink, often blue,
+  and every letter would get a coloured fringe.
+- **Only the cover is dithered** (Floyd-Steinberg), towards the colours the panel *actually* shows: the 50/50 blend
+  of the Pimoroni driver's `SATURATED_PALETTE` and `DESATURATED_PALETTE`, as `set_image()` does by default. The
+  final image goes to the driver as a six-colour palette image, so it does not dither again.
+- **The map** is an SVG drawn with `shape-rendering="crispEdges"` in pure inks, mapped back to the palette without
+  dithering on the Pi.
+- **Previews and downloads** use the ink colours, so their greyish white is the panel's real white.
 
-### Zone visible
+### Origins
 
-Le passe-partout cache une partie de la dalle. Mesurée avec une mire : x 52 → 748, y 35 → 480.
-Toute la mise en page tient dans `VISIBLE` (en haut de `cadre.py`), avec 24 px de marge en plus.
-Si le Pi bouge dans le cadre, c'est la seule valeur à changer.
+The 320kbps.club feed gives the place an artist is *based* (MusicBrainz "area"). Liner looks for where they were
+*born or formed* ("begin-area"):
 
-## Sources
+1. Search MusicBrainz for the exact artist name; the feed's origin picks between namesakes
+   (Deluxe from Aix-en-Provence, not Samy Deluxe from Hamburg).
+2. Use the begin-area when it is a city, or the country when it is one (Magugu, born in Nigeria, based in the UK).
+   A region ("England") falls back to the country.
+3. A collaboration ("A & B") resolves to the first artist found.
+4. Failing that, the feed's origin; failing that, a plain background.
 
-- Flux : `https://www.320kbps.club/feed.xml` (titres, albums, pochettes en `media:content`)
-- Pages d'album de 320kbps.club : année, style
-- Contours : [Natural Earth](https://www.naturalearthdata.com) 1:50m, domaine public
-- Villes : [Nominatim](https://nominatim.openstreetmap.org) (OpenStreetMap), une requête par lieu, mise en cache
-- Origine des artistes d'album : [MusicBrainz](https://musicbrainz.org), lieu de naissance ou de formation
+### Visible area
+
+The mat hides part of the panel. Measured with a test grid: x 52 → 748, y 35 → 480. Everything is laid out inside
+`VISIBLE` (top of `pi/liner.py`, mirrored in `lib/frame.ts` for the mockup). If the Pi moves in its frame, that is
+the only value to change.
+
+## Credits
+
+- Music: [320kbps.club](https://www.320kbps.club) feed and album pages
+- Outlines: [Natural Earth](https://www.naturalearthdata.com) 1:50m, public domain
+- Origins: [MusicBrainz](https://musicbrainz.org) (CC0); cities: [Nominatim](https://nominatim.openstreetmap.org), © OpenStreetMap contributors
+- Fonts: [IBM Plex](https://github.com/IBM/plex), SIL Open Font License

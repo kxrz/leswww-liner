@@ -1,0 +1,12 @@
+[Unit]
+Description=Liner: requests sent from the web page
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/tekpi-eink/pi
+EnvironmentFile=/home/pi/tekpi-eink/pi/liner.env
+ExecStart=/usr/bin/python3 /home/pi/tekpi-eink/pi/liner.py --sync
+TimeoutStartSec=300

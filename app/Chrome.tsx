@@ -13,6 +13,7 @@ export function Nav({ control = false }: { control?: boolean }) {
           <Link href="/" className="label product">Liner</Link>
         </div>
         <nav className="label">
+          <Link href="/gallery">Gallery</Link>
           <a href="https://www.320kbps.club" className="hide-mobile">320kbps.club</a>
           <a href="https://github.com/kxrz/leswww-liner" className="hide-mobile">GitHub</a>
           {control ? (

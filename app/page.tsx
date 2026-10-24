@@ -115,7 +115,10 @@ export default async function Home() {
               <span className="tag tag-live">Wallpaper</span>
               <h3>As a 4K wallpaper</h3>
               <p>The HD drawing, 3840 × 2160, in the tones of the panel. A new one every time the frame changes.</p>
-              <a href={art.hdDownload} className="btn">Download the 4K wallpaper ↓</a>
+              <div className="actions tight">
+                <a href={art.hdDownload} className="btn">Today&apos;s 4K wallpaper ↓</a>
+                <Link href="/gallery" className="btn secondary">All wallpapers →</Link>
+              </div>
             </div>
           </div>
         </section>

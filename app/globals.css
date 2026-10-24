@@ -166,6 +166,11 @@ h3 {
   color: var(--accent-ink);
 }
 
+.tag-alert {
+  background: var(--ink);
+  color: var(--paper);
+}
+
 .tag-verified {
   background: var(--pop3);
   color: var(--accent-ink);
@@ -241,6 +246,10 @@ h3 {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 2rem;
+}
+
+.actions.tight {
+  margin-top: 0;
 }
 
 form.actions {
@@ -599,6 +608,56 @@ form.actions .btn {
   }
 }
 
+/* --- Gallery --- */
+
+.gallery {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 64rem) {
+  .gallery {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.gallery .card {
+  gap: 0.9rem;
+}
+
+.thumb {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--line);
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.gallery .track-artist {
+  font-size: 1.05rem;
+}
+
+.gallery .label {
+  margin-top: 0.35rem;
+}
+
+.gallery .downloads {
+  margin-top: auto;
+}
+
 /* --- Before and after --- */
 
 .block-lede {
@@ -795,8 +854,17 @@ form.actions .btn {
 
 /* --- Control room --- */
 
+.health {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
 .now {
-  padding-top: 2rem;
+  padding-top: 1.5rem;
 }
 
 .steps {

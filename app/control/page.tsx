@@ -4,7 +4,8 @@ import { Footer, Nav } from "../Chrome";
 import { NowPlaying } from "../NowPlaying";
 import { isLoggedIn } from "@/lib/auth";
 import { getItems } from "@/lib/feed";
-import { listVisuals, readCommand, readStatus, slug } from "@/lib/store";
+import { ago, frameState } from "@/lib/health";
+import { listVisuals, readCommand, readHealth, readStatus, slug } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Control room · Liner", robots: { index: false, follow: false } };
@@ -37,7 +38,10 @@ export default async function Control({ searchParams }: { searchParams: Promise<
     );
   }
 
-  const [items, status, command, visuals] = await Promise.all([getItems(), readStatus(), readCommand(), listVisuals()]);
+  const [items, status, command, visuals, health] = await Promise.all([
+    getItems(), readStatus(), readCommand(), listVisuals(), readHealth(),
+  ]);
+  const frame = frameState(health);
   const requested = Math.max(Number(params.sent) || 0, command?.id ?? 0);
   const pending = requested > (status?.command ?? 0) ? requested : null;
 
@@ -45,6 +49,20 @@ export default async function Control({ searchParams }: { searchParams: Promise<
     <>
       <Nav control />
       <main className="wrap narrow">
+        <div className="health">
+          {frame.state === "online" && <span className="tag tag-live">Online</span>}
+          {frame.state === "silent" && <span className="tag tag-alert">Silent</span>}
+          {frame.state === "asleep" && <span className="tag">Asleep until 7:00</span>}
+          {frame.state === "unknown" && <span className="tag">No news yet</span>}
+          <span className="label">
+            {[
+              frame.minutes !== null && `checked in ${ago(frame.minutes)}`,
+              health?.temp !== undefined && `${health.temp.toFixed(0)} °C`,
+              health?.uptime !== undefined && `up ${ago(Math.round(health.uptime / 60)).replace(" ago", "")}`,
+              health?.version && `v ${health.version}`,
+            ].filter(Boolean).join(" · ")}
+          </span>
+        </div>
         <NowPlaying status={status} pictures={status ? visuals.get(slug(status.guid)) : undefined} pending={pending} />
 
         <form action={send} className="actions">

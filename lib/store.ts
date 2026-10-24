@@ -51,6 +51,22 @@ export const writeCommand = (c: Command) => write(COMMAND, c);
 export const readStatus = () => read<Status>(STATUS);
 export const writeStatus = (s: Status) => write(STATUS, s);
 
+/** Everything that has hung on the wall, newest first: the public gallery's index. */
+export type Hung = { slug: string; guid: string; title: string; artist: string; place?: string; at: string };
+const GALLERY = "liner/gallery.json";
+export const readGallery = async () => (await read<Hung[]>(GALLERY)) ?? [];
+
+export async function addToGallery(entry: Hung): Promise<void> {
+  const gallery = (await readGallery()).filter((h) => h.slug !== entry.slug);
+  await write(GALLERY, [entry, ...gallery].slice(0, 500));
+}
+
+/** The frame's last sign of life: sent every 15 minutes while it is awake (7:00 to midnight). */
+export type Health = { at: string; temp?: number; uptime?: number; version?: string };
+const HEALTH = "liner/health.json";
+export const readHealth = () => read<Health>(HEALTH);
+export const writeHealth = (h: Health) => write(HEALTH, h);
+
 /** Where an artist comes from, once worked out (see lib/map.ts). Keyed by artist and feed hint. */
 const ORIGINS = "liner/origins/";
 const originPath = (key: string) => `${ORIGINS}${encodeURIComponent(key.toLowerCase()).replace(/%/g, "_")}.json`;

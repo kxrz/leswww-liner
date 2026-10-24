@@ -1,5 +1,5 @@
 import { isDevice } from "@/lib/auth";
-import { readCommand, writeStatus, type Status } from "@/lib/store";
+import { addToGallery, readCommand, slug, writeStatus, type Status } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -16,13 +16,16 @@ export async function POST(request: Request) {
   if (typeof s.guid !== "string" || typeof s.title !== "string") {
     return new Response("Bad request", { status: 400 });
   }
+  const at = new Date().toISOString();
+  const place = typeof s.place === "string" ? s.place : undefined;
+  await addToGallery({ slug: slug(s.guid), guid: s.guid, title: s.title, artist: String(s.artist ?? ""), place, at });
   await writeStatus({
-    at: new Date().toISOString(),
+    at,
     guid: s.guid,
     title: s.title,
     artist: String(s.artist ?? ""),
     command: Number(s.command ?? 0),
-    place: typeof s.place === "string" ? s.place : undefined,
+    place,
     visual: typeof s.visual === "string" ? s.visual : undefined,
   });
   return new Response(null, { status: 204 });

@@ -1,12 +1,15 @@
+import { isDevice } from "@/lib/auth";
 import { INKS, renderMap, Unavailable, type Ink, type MapStyle } from "@/lib/map";
 
 /**
- * Map of where an artist comes from, as a PNG in the panel's inks. Cached by the CDN forever.
+ * Map of where an artist comes from, as a PNG in the panel's inks. Only the frame may ask (it renders on demand,
+ * so an open route would let anyone burn compute); origins are kept in Blob, so each map takes about a second.
  * ?artist=Balthazar&hint=Belgium&w=696&h=445&box=x0,y0,x1,y1&bg=blue&ink=white
  * `hint` is the origin given by the feed; without `artist`, that is what gets mapped.
  * &s=4.5&tone=seen: the HD wallpaper version (strokes scaled, antialiased, in the tones the panel shows).
  */
 export async function GET(request: Request) {
+  if (!isDevice(request)) return new Response("Unauthorized", { status: 401 });
   const q = new URL(request.url).searchParams;
   const hint = q.get("hint")?.trim() || q.get("origin")?.trim() || undefined;
   const artist = q.get("artist")?.trim() || undefined;
@@ -35,7 +38,7 @@ export async function GET(request: Request) {
   return new Response(new Uint8Array(map.png), {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "public, s-maxage=31536000, immutable",
+      "Cache-Control": "private, no-store",
       "X-Place": encodeURIComponent(map.label),
     },
   });

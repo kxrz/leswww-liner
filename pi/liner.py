@@ -178,7 +178,7 @@ def origin_map(item, box, bg, ink, hd=False):
     # It answers 503 when MusicBrainz is busy: worth a second try.
     for attempt in (1, 2):
         try:
-            r = requests.get(f"{URL}/api/map", timeout=90, params=params)
+            r = requests.get(f"{URL}/api/map", headers=AUTH, timeout=90, params=params)
             r.raise_for_status()
             break
         except requests.RequestException as e:
@@ -340,10 +340,27 @@ def report(item, img, raw, now, command):
         print(f"Report not sent: {e}")
 
 
+def heartbeat(state):
+    """Every 15 minutes, tell the page the frame is alive, with its temperature, uptime and code version."""
+    if time.time() - state.get("heartbeat", 0) < 15 * 60:
+        return
+    try:
+        temp = int(Path("/sys/class/thermal/thermal_zone0/temp").read_text()) / 1000
+        uptime = float(Path("/proc/uptime").read_text().split()[0])
+        version = os.popen(f"git -C {HERE} rev-parse --short HEAD 2>/dev/null").read().strip()
+        requests.post(f"{URL}/api/pi/heartbeat", headers=AUTH, timeout=20,
+                      json={"temp": temp, "uptime": uptime, "version": version}).raise_for_status()
+        state["heartbeat"] = time.time()
+        STATE.write_text(json.dumps(state))
+    except (OSError, ValueError, requests.RequestException) as e:
+        print(f"Heartbeat not sent: {e}")
+
+
 def sync():
     """Carry out the page's latest request, if it is newer than the last one handled."""
     if not URL:
         return
+    heartbeat(load_state())
     r = requests.get(f"{URL}/api/pi", headers=AUTH, timeout=20)
     r.raise_for_status()
     cmd = r.json()

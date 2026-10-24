@@ -22,19 +22,18 @@ export const metadata: Metadata = {
     "album art", "liner notes", "MusicBrainz", "open source", "LesWWW",
   ],
   category: "technology",
-  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     url: SITE.url,
     siteName: "Liner · LesWWW",
     title: SITE.title,
     description: SITE.description,
-    locale: "en_US",
+    locale: "en_GB",
     images: [{ url: "/og.png", width: 1200, height: 630, alt: "Liner: an e-ink frame showing Thomas Bangalter over a blue map of France" }],
   },
   twitter: { card: "summary_large_image", title: SITE.title, description: SITE.description, images: ["/og.png"] },
   appleWebApp: { capable: true, title: "Liner", statusBarStyle: "default" },
-  other: { "llms-txt": `${SITE.url}/llms.txt` },
+  alternates: { canonical: "/", types: { "text/markdown": "/llms.txt" } },
 };
 
 export const viewport: Viewport = {
@@ -48,7 +47,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en-GB" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
       <body>
         {children}
         <Analytics />

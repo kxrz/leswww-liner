@@ -154,7 +154,7 @@ export default async function Home() {
 
         <section className="block maker">
           <div className="maker-head">
-            <img src="/florent.png" alt="Florent Bertiaux" width={96} height={96} className="avatar" />
+            <img src="/florent.webp" alt="Florent Bertiaux" width={96} height={96} className="avatar" />
             <div>
               <span className="label">Made by</span>
               <h2 className="name">

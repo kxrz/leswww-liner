@@ -6,11 +6,26 @@ import { listVisuals, readGallery, slug } from "@/lib/store";
 
 export const revalidate = 600;
 
+const TITLE = "Free 4K music wallpapers";
+const DESCRIPTION =
+  "Free 4K music wallpapers from Liner, the LesWWW e-ink frame: each track's cover, liner notes and a map of where the artist comes from. From 320kbps.club.";
+const IMAGE = { url: "/og-gallery.png", width: 1200, height: 630, alt: "Three Liner wallpapers: Thomas Bangalter, Magugu & Le Motel, Balthazar" };
+
+// A child page replaces the parent's whole openGraph and twitter objects: spell them out
 export const metadata: Metadata = {
-  title: "Gallery: free 4K music wallpapers",
-  description:
-    "A selection of tracks that hung on Liner, the LesWWW e-ink frame: free 4K wallpapers, e-ink and black and white versions, each with a map of where the artist comes from. Music from 320kbps.club.",
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: "/gallery" },
+  openGraph: {
+    type: "website",
+    url: "/gallery",
+    siteName: "Liner · LesWWW",
+    locale: "en_GB",
+    title: `${TITLE} · Liner`,
+    description: DESCRIPTION,
+    images: [IMAGE],
+  },
+  twitter: { card: "summary_large_image", title: `${TITLE} · Liner`, description: DESCRIPTION, images: [IMAGE.url] },
 };
 
 const date = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Paris" });

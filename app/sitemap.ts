@@ -1,10 +1,13 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/site";
+import { readGallery, readStatus } from "@/lib/store";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const revalidate = 3600;
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [status, gallery] = await Promise.all([readStatus(), readGallery()]);
   return [
-    { url: SITE.url, changeFrequency: "daily", priority: 1 },
-    { url: `${SITE.url}/gallery`, changeFrequency: "daily", priority: 0.8 },
-    { url: `${SITE.url}/llms.txt`, changeFrequency: "monthly", priority: 0.3 },
+    { url: SITE.url, lastModified: status?.at, changeFrequency: "daily", priority: 1 },
+    { url: `${SITE.url}/gallery`, lastModified: gallery[0]?.at, changeFrequency: "daily", priority: 0.8 },
   ];
 }

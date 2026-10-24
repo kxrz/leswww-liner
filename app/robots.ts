@@ -1,11 +1,10 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/site";
 
-// Search engines and AI crawlers are welcome on the landing page; the control room and the API are private.
+// Crawlers may fetch everything but the API: /control must be fetched for its noindex to be seen.
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/control", "/api/"] }],
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/api/"] }],
     sitemap: `${SITE.url}/sitemap.xml`,
-    host: SITE.url,
   };
 }

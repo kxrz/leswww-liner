@@ -13,6 +13,8 @@ const security = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Pictures live in Vercel Blob; the optimiser serves light versions of them (the 4K wallpaper weighs a megabyte)
+  images: { remotePatterns: [{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" }] },
   // resvg ships a native binary: load it at runtime rather than bundling it
   serverExternalPackages: ["@resvg/resvg-js"],
   async headers() {

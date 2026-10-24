@@ -4,8 +4,8 @@ Lire `README.md` d'abord : architecture, installation, choix de rendu.
 
 ## À respecter
 
-- **Le rendu se fait sur le Pi** (`pi/cadre.py`, Pillow). Le site ne dessine rien : il transmet des demandes.
-- **Rester simple.** Un seul script Python côté Pi, une page et une route côté web, deux fichiers JSON dans Blob.
+- **La mise en page se fait sur le Pi** (`pi/cadre.py`, Pillow). Le site transmet les demandes et rend seulement la carte (`/api/map`).
+- **Rester simple.** Un seul script Python côté Pi ; côté web une page, deux routes (synchro, carte), deux fichiers JSON dans Blob.
   Pas de base de données, pas de framework CSS, pas de dépendance qui ne serait pas indispensable.
 - **Texte jamais lissé ni tramé** (`d.fontmode = "1"`), encres pures uniquement. Seule la pochette est tramée.
 - **Dalle Spectra 6** : noir, blanc, jaune, rouge, bleu, vert. Pas d'orange.

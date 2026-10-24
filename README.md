@@ -1,22 +1,28 @@
 # tekpi-eink
 
-Un cadre e-ink posé dans le salon : un titre de [320kbps.club](https://www.320kbps.club) et la météo de Lille,
-renouvelés matin et soir, avec une petite page web pour changer de titre depuis le téléphone.
+Un cadre e-ink posé dans le salon, entièrement consacré à la musique : un titre de
+[320kbps.club](https://www.320kbps.club), sa pochette, son vinyle qui en sort, et la carte d'où vient l'artiste.
+Un nouveau titre matin et soir, et une petite page web pour en changer depuis le téléphone.
 
 ```
 ┌──────────────────────────────────────────────┐
-│ samedi 24 octobre               320kbps.club │
-│ ──────────────────────────────────────────── │
-│ ┌────────┐  Bitter Better                    │
-│ │pochette│  Magugu & Le Motel                │
-│ │ tramée │                            ▣ QR   │
-│ └────────┘  nouvel EP                        │
-│ ──────────────────────────────────────────── │
-│         Lille        8h   12h   16h   20h    │
-│  11°    aujourd'hui  ☁    ☀    🌧    🌧     │
-│         min 6°       6°   11°   10°   10°    │
+│ ┌──────────┐▓▓▓▓       320kbps.club          │
+│ │          │▓▓▓▓▓▓     samedi 24 octobre     │
+│ │ pochette │▓▓ ◉ ▓▓      ┌─────────┐         │
+│ │  tramée  │▓▓▓▓▓▓      │ ░ pays ░ │  ●     │
+│ │          │▓▓▓▓        └─────────┘         │
+│ └──────────┘             Belgium             │
+│ Linger On (Sand Castle Tapes version)  ▣▣▣  │
+│ Balthazar                              ▣ QR │
+│ The Sand Castle Tapes · 2021 · PIAS    ▣▣▣  │
 └──────────────────────────────────────────────┘
 ```
+
+- **La pochette**, tramée sur les six encres, avec une ombre portée franche.
+- **Le vinyle** qui en glisse : sillons bleu nuit, reflets, macaron teinté de la couleur dominante de la pochette.
+- **La carte de l'origine** de l'artiste : contour du pays, trame de points de la même couleur, point rouge si l'origine
+  est une ville. Pour un album, dont le flux ne donne pas l'origine, la tracklist la remplace.
+- **Le titre, l'artiste, l'album, l'année, le label**, et un QR vers la page du titre.
 
 ## Matériel
 
@@ -41,22 +47,25 @@ renouvelés matin et soir, avec une petite page web pour changer de titre depuis
 Le Pi est derrière la box : Vercel ne peut pas le joindre. C'est donc lui qui interroge la page chaque minute.
 Une demande met au plus une à deux minutes à être prise en compte, plus une trentaine de secondes de rafraîchissement de la dalle.
 
-Tout le dessin se fait **sur le Pi**, en Python avec Pillow. Le site ne fait que transmettre des demandes.
+La mise en page est dessinée **sur le Pi**, en Python avec Pillow. Seule la carte est calculée par Vercel
+(`/api/map`, un PNG aux encres de la dalle mis en cache par le CDN) : contours des pays et géocodage restent
+hors du Pi Zero.
 
-- **7h** : le prochain titre du flux pas encore affiché, et la météo du jour.
-- **19h** : le titre suivant, et la météo du lendemain.
-- **Depuis la page** : « Titre suivant », « Rafraîchir » (même titre, météo à jour) ou n'importe quel titre du flux.
+- **7h et 19h** : le prochain titre du flux pas encore affiché.
+- **Depuis la page** : « Titre suivant », « Rafraîchir » (même titre, redessiné) ou n'importe quel titre du flux.
 
-Sans connexion à la page (pas de `cadre.env`), le cadre fonctionne seul, matin et soir.
+Sans connexion à la page (pas de `cadre.env`), le cadre fonctionne seul, matin et soir, sans carte.
 
 ## Le dépôt
 
 ```
-app/                 page mobile (Next.js) et route /api/pi du Pi
+app/                 page mobile (Next.js), routes /api/pi (synchro) et /api/map (carte)
 lib/
   feed.ts            lecture du flux RSS de 320kbps.club
   store.ts           command.json et status.json dans Vercel Blob
   auth.ts            mot de passe de la page, jeton du Pi
+  map.ts             carte d'origine : contour, trame, point de la ville → PNG
+  countries.json     contours des pays (Natural Earth 1:50m, simplifiés)
 pi/
   cadre.py           tout le cadre : données, mise en page, affichage, synchro
   fonts/             IBM Plex Sans (variable) et IBM Plex Mono
@@ -86,7 +95,6 @@ Mettre à jour : `cd ~/tekpi-eink && git pull && pi/install.sh`.
 | Voir ce qui s'est passé | `journalctl -u cadre -u cadre-sync -n 30` |
 | Prochains déclenchements | `systemctl list-timers 'cadre*'` |
 | Tester une mise en page sans toucher l'écran | `python3 cadre.py --preview` puis ouvrir `preview.png` |
-| Version du soir | `python3 cadre.py --preview --soir` |
 
 `state.json` retient les titres déjà affichés et la dernière demande traitée. Le supprimer fait repartir du titre le plus récent.
 
@@ -111,8 +119,9 @@ En local : `npm install && npm run dev` (avec un `.env.local`, voir `.env.exampl
 - **Seule la pochette est tramée** (Floyd-Steinberg), vers les couleurs *réellement* rendues par la dalle :
   le mélange à 50 % des palettes `SATURATED_PALETTE` et `DESATURATED_PALETTE` du pilote Pimoroni, comme le fait
   `set_image()` par défaut. L'image finale est envoyée en mode « P » à six couleurs exactes : le pilote ne retrame rien.
-- **La couleur reste un accent** : rouge pour l'artiste, température bleue (< 12 °C) ou rouge (≥ 24 °C),
-  pluie en bleu au-delà de 50 %, pictos météo dessinés au trait. Le reste est noir sur blanc, dans l'esprit Mudita.
+- **La couleur vient de la pochette** : l'encre de couleur la plus présente teinte le macaron du disque et la trame
+  de la carte. Le rouge reste réservé à l'artiste et à la marque. Le reste est noir sur blanc.
+- **La carte** est rendue en SVG `crispEdges` puis rastérisée par sharp ; le Pi la ramène à la palette sans tramage.
 - **L'aperçu** (`preview.png`) utilise les couleurs de l'encre : son fond grisâtre est celui de l'écran réel.
 
 ### Zone visible
@@ -124,4 +133,6 @@ Si le Pi bouge dans le cadre, c'est la seule valeur à changer.
 ## Sources
 
 - Flux : `https://www.320kbps.club/feed.xml` (titres, albums, pochettes en `media:content`)
-- Météo : [Open-Meteo](https://open-meteo.com), sans clé ; Lille (50,63 ; 3,06), fuseau Europe/Paris
+- Pages d'album de 320kbps.club : année, style, tracklist
+- Contours : [Natural Earth](https://www.naturalearthdata.com) 1:50m, domaine public
+- Villes : [Nominatim](https://nominatim.openstreetmap.org) (OpenStreetMap), une requête par lieu, mise en cache

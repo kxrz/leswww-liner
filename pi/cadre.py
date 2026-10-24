@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
-"""Cadre e-ink : un titre de 320kbps.club et la météo de Lille.
+"""Cadre e-ink : un titre de 320kbps.club, son vinyle qui sort de la pochette, et la carte d'où vient l'artiste.
 
 Inky Impression 7.3" (Spectra 6), 800x480.
   python3 cadre.py            affiche le prochain titre pas encore vu
   python3 cadre.py --sync     exécute la dernière demande de la page web, s'il y en a une
   python3 cadre.py --preview  dessine seulement (preview.png), sans toucher à l'écran
-  python3 cadre.py --soir     force la version du soir (météo du lendemain)
 
 CADRE_URL et CADRE_TOKEN (cadre.env) relient le cadre à la page web ; sans eux, il tourne seul.
 """
 import fcntl
+import html
 import json
-import math
 import os
+import re
 import sys
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import unquote
 
 import qrcode
 import requests
@@ -29,16 +30,11 @@ URL = os.environ.get("CADRE_URL", "").rstrip("/")
 AUTH = {"Authorization": f"Bearer {os.environ.get('CADRE_TOKEN', '')}"}
 FEED = "https://www.320kbps.club/feed.xml"
 MEDIA = "{http://search.yahoo.com/mrss/}content"
-METEO = ("https://api.open-meteo.com/v1/forecast?latitude=50.6292&longitude=3.0573"
-         "&hourly=temperature_2m,precipitation_probability,weather_code"
-         "&daily=temperature_2m_max,temperature_2m_min"
-         "&timezone=Europe%2FParis&forecast_days=2")
 
 W, H = 800, 480
 # Zone visible à travers le passe-partout (mesurée avec une mire), puis marge intérieure
 VISIBLE = (52, 35, 748, 480)
-PAD = 24
-L, T, R, B = VISIBLE[0] + PAD, VISIBLE[1] + PAD, VISIBLE[2] - PAD, VISIBLE[3] - PAD - 4
+L, T, R, B = VISIBLE[0] + 20, VISIBLE[1] + 16, VISIBLE[2] - 20, VISIBLE[3] - 16
 # Ordre de palette attendu par la lib inky (6 couleurs pures => pas de tramage de sa part)
 PALETTE = [0, 0, 0, 255, 255, 255, 255, 255, 0, 255, 0, 0, 0, 0, 255, 0, 255, 0]
 BLACK, WHITE, YELLOW, RED, BLUE, GREEN = range(6)
@@ -79,37 +75,46 @@ def pick_item(seen, guid=None):
     is_album = raw.startswith("New album: ")
     artist, _, title = raw.removeprefix("New album: ").partition(" — ")
     blocks = [b.strip() for b in item.findtext("description", "").split("\n\n") if b.strip()]
-    if is_album:  # « Bitter Better - EP »
+    info = {"kind": "titre", "album": "", "year": "", "label": "", "country": ""}
+    if is_album:  # « Bitter Better - EP » ; la description est un texte éditorial
         name, _, fmt = title.rpartition(" - ")
         title = name or title
-        details = [f"nouvel {fmt if name else 'album'}"]
-    else:  # « Album — 2021 », « Label: … », « Pays — Active since … »
-        details = [b.removeprefix("Label: ").split(" — Active")[0] for b in blocks[:3]]
+        info["kind"] = fmt.lower() if name else "album"
+        info.update(album_page(item.findtext("link")))
+    elif blocks:  # « Album - Single — 2021 », « Label: … », « Pays — Active since … »
+        head, _, year = blocks[0].rpartition(" — ")
+        if not re.fullmatch(r"\d{4}", year):
+            head, year = blocks[0], ""
+        name, _, fmt = head.rpartition(" - ")
+        if fmt in ("Single", "EP"):
+            head, info["kind"] = name, fmt.lower()
+        info["album"] = "" if head == title else head
+        info["year"] = year
+        for b in blocks[1:]:  # l'ordre et la présence de ces blocs varient d'un titre à l'autre
+            if b.startswith("Label: "):
+                info["label"] = b.removeprefix("Label: ")
+            elif len(b) < 60:
+                info["country"] = b.split(" — ")[0]
     media = item.find(MEDIA)
     return {
         "guid": item.findtext("guid"), "link": item.findtext("link"),
-        "artist": artist, "title": title or artist, "details": details,
+        "artist": artist, "title": title or artist, **info,
         "cover": media.get("url") if media is not None else None,
     }
 
 
-def get_weather(evening):
-    d = requests.get(METEO, timeout=20).json()
-    day = 1 if evening else 0
-    date = (datetime.now() + timedelta(days=day)).strftime("%Y-%m-%d")
-    hourly, daily = d["hourly"], d["daily"]
-    idx = {t: i for i, t in enumerate(hourly["time"])}
-    slots = []
-    for h in (8, 12, 16, 20):
-        i = idx[f"{date}T{h:02d}:00"]
-        slots.append((h, hourly["weather_code"][i], round(hourly["temperature_2m"][i])))
-    return {
-        "label": "demain" if evening else "aujourd'hui",
-        "tmax": round(daily["temperature_2m_max"][day]),
-        "tmin": round(daily["temperature_2m_min"][day]),
-        "rain": max(hourly["precipitation_probability"][idx[f"{date}T{h:02d}:00"]] for h in range(7, 22)),  # en journée
-        "slots": slots,
-    }
+def album_page(link):
+    """Année, style et tracklist d'un album, lus sur sa page (le flux ne donne qu'un texte éditorial)."""
+    try:
+        page = requests.get(link, timeout=20).text
+    except requests.RequestException:
+        return {}
+    page = re.sub(r"<script.*?</script>|<style.*?</style>", "", page, flags=re.S)
+    words = [w for w in (html.unescape(x).strip() for x in re.split(r"<[^>]+>", page)) if w]
+    after = lambda key: words[words.index(key) + 1] if key in words[:-1] else ""
+    tracks = [(words[i - 2], words[i]) for i in range(2, len(words) - 1)
+              if words[i - 1] == "." and words[i - 2].isdigit() and re.fullmatch(r"\d+:\d\d", words[i + 1])]
+    return {"year": after("Year"), "style": after("Styles"), "tracks": tracks}
 
 
 # --- Dessin ----------------------------------------------------------------
@@ -142,130 +147,119 @@ def cover(url, size):
     return img.quantize(palette=pal, dither=Image.Dither.FLOYDSTEINBERG)
 
 
-def kind(code):
-    if code <= 1: return "sun"
-    if code == 2: return "partly"
-    if code == 3: return "cloud"
-    if code in (45, 48): return "fog"
-    if code >= 95: return "storm"
-    if 71 <= code <= 77 or code in (85, 86): return "snow"
-    return "rain"
+INK_NAMES = {RED: "red", BLUE: "blue", GREEN: "green", YELLOW: "yellow"}
 
 
-def cloud(d, cx, cy, s, w):
-    """Nuage en trait : forme noire puis la même, rétrécie, en blanc."""
-    for grow, fill in ((w, BLACK), (0, WHITE)):
-        for ox, oy, r in ((-0.38, 0.08, 0.30), (0.08, -0.12, 0.42), (0.5, 0.12, 0.26)):
-            x, y, rr = cx + ox * s, cy + oy * s, r * s + grow
-            d.ellipse((x - rr, y - rr, x + rr, y + rr), fill=fill)
-        d.rounded_rectangle((cx - 0.68 * s - grow, cy + 0.05 * s - grow, cx + 0.76 * s + grow, cy + 0.38 * s + grow),
-                            radius=0.16 * s + grow, fill=fill)
+def origin_map(origin, w, h, ink):
+    """Carte rendue par la page web (PNG aux encres pures), ramenée à la palette sans tramage."""
+    if not (URL and origin):
+        return None, origin
+    try:
+        r = requests.get(f"{URL}/api/map", timeout=30,
+                         params={"origin": origin, "w": w, "h": h, "accent": INK_NAMES[ink]})
+        r.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Carte indisponible pour {origin} : {e}")
+        return None, origin
+    pal = Image.new("P", (1, 1))
+    pal.putpalette(PALETTE)
+    img = Image.open(BytesIO(r.content)).convert("RGB").quantize(palette=pal, dither=Image.Dither.NONE)
+    return img, unquote(r.headers.get("X-Place", origin))
 
 
-def sun(d, cx, cy, s, w):
-    r = 0.36 * s
-    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=YELLOW, outline=BLACK, width=w)
-    for k in range(8):
-        a = k * math.pi / 4
-        d.line((cx + math.cos(a) * 0.55 * s, cy + math.sin(a) * 0.55 * s,
-                cx + math.cos(a) * 0.82 * s, cy + math.sin(a) * 0.82 * s), fill=BLACK, width=w)
+def accent(img):
+    """L'encre de couleur la plus présente sur la pochette, pour teinter le macaron du disque."""
+    total = img.width * img.height
+    for n, i in sorted(img.getcolors(), reverse=True):
+        if i in (RED, BLUE, GREEN, YELLOW) and n > total * 0.05:
+            return i
+    return RED
 
 
-def icon(d, cx, cy, s, code):
-    """Pictos météo au trait, à la manière d'un réveil Mudita. s = demi-largeur."""
-    w = max(2, round(s / 7))
-    k = kind(code)
-    if k == "sun":
-        return sun(d, cx, cy, s, w)
-    if k == "fog":
-        for i, (a, b) in enumerate(((-0.8, 0.6), (-0.6, 0.8), (-0.8, 0.5))):
-            y = cy + (i - 1) * 0.4 * s
-            d.line((cx + a * s, y, cx + b * s, y), fill=BLACK, width=w)
-        return
-    if k == "partly":
-        sun(d, cx + 0.32 * s, cy - 0.3 * s, 0.7 * s, w)
-    lift = 0 if k in ("partly", "cloud") else 0.28 * s
-    cloud(d, cx - 0.05 * s, cy - lift, s, w)
-    base = cy - lift + 0.38 * s + w
-    if k == "rain":
-        for x in (-0.35, 0.05, 0.45):
-            d.line((cx + x * s, base + 0.14 * s, cx + (x - 0.12) * s, base + 0.42 * s), fill=BLUE, width=w + 2)
-    elif k == "snow":
-        for x in (-0.35, 0.05, 0.45):
-            r = w * 1.2
-            d.ellipse((cx + x * s - r, base + 0.3 * s - r, cx + x * s + r, base + 0.3 * s + r), fill=BLUE)
-    elif k == "storm":
-        x, y = cx, base + 0.08 * s
-        d.polygon([(x + 0.1 * s, y), (x - 0.2 * s, y + 0.3 * s), (x, y + 0.3 * s),
-                   (x - 0.12 * s, y + 0.58 * s), (x + 0.24 * s, y + 0.22 * s), (x + 0.04 * s, y + 0.22 * s)], fill=YELLOW, outline=BLACK)
+def vinyl(d, cx, cy, r, label):
+    """Disque noir, sillons bleu nuit (discrets sur l'encre), deux reflets, macaron coloré."""
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=BLACK)
+    lr = round(r * 0.34)
+    for rr in range(lr + 8, r - 4, 6):
+        d.ellipse((cx - rr, cy - rr, cx + rr, cy + rr), outline=BLUE, width=1)
+    for start in (200, 20):  # reflets en vis-à-vis
+        for rr in range(lr + 16, r - 10, 6):
+            d.arc((cx - rr, cy - rr, cx + rr, cy + rr), start, start + 26, fill=WHITE, width=1)
+    d.ellipse((cx - lr, cy - lr, cx + lr, cy + lr), fill=label)
+    ring = BLACK if label == YELLOW else WHITE
+    d.ellipse((cx - lr + 5, cy - lr + 5, cx + lr - 5, cy + lr - 5), outline=ring, width=1)
+    d.ellipse((cx - 5, cy - 5, cx + 5, cy + 5), fill=WHITE)
 
 
-def qr(d, url, x, y, size):
+def qr(d, url, right, bottom):
+    """QR calé en bas à droite, modules de 3 px : lisible au téléphone quelle que soit la longueur de l'URL."""
     q = qrcode.QRCode(border=0, error_correction=qrcode.constants.ERROR_CORRECT_L)
     q.add_data(url)
     m = q.get_matrix()
-    cell = size // len(m)
+    cell = 3
+    x, y = right - len(m) * cell, bottom - len(m) * cell
     for j, row in enumerate(m):
         for i, v in enumerate(row):
             if v:
                 d.rectangle((x + i * cell, y + j * cell, x + (i + 1) * cell - 1, y + (j + 1) * cell - 1), fill=BLACK)
+    return len(m) * cell
 
 
-def render(item, wx, now):
+def render(item, now):
     img = Image.new("P", (W, H), WHITE)
     img.putpalette(PALETTE)
     d = ImageDraw.Draw(img)
     d.fontmode = "1"  # pas d'anticrénelage : des pixels nets, comme une liseuse
 
-    # En-tête
-    d.text((L, T), f"{JOURS[now.weekday()]} {now.day} {MOIS[now.month - 1]}", font=sans(21, 450), fill=BLACK)
-    d.text((R, T + 4), "320kbps.club", font=mono(15, bold=True), fill=RED, anchor="ra")
-    d.line((L, T + 36, R, T + 36), fill=BLACK, width=2)
-
-    # Musique : pochette, titre, artiste, une ligne de détails, QR
-    top, cs, qs = T + 56, 184, 72
-    if item["cover"]:
-        img.paste(cover(item["cover"], cs), (L, top))
+    # Le disque d'abord, la pochette par-dessus : il a l'air d'en glisser
+    cs, r = 260, 118
+    art = cover(item["cover"], cs) if item["cover"] else None
+    ink = accent(art) if art else RED
+    vx = L + cs + 20
+    vinyl(d, vx, T + cs // 2, r, ink)
+    d.rectangle((L + 7, T + 7, L + cs + 7, T + cs + 7), fill=BLACK)  # ombre portée franche
+    if art:
+        img.paste(art, (L, T))
     else:
-        d.rectangle((L, top, L + cs, top + cs), outline=BLACK, width=2)
-    tx = L + cs + 28
-    tw = R - tx
-    for size in range(42, 25, -2):
-        f = sans(size, 300)
-        lines = wrap(d, item["title"], f, tw)
-        if len(lines) <= 2:
-            break
-    y = top - round(size * 0.18)
-    for line in lines[:3]:
-        d.text((tx, y), fit(d, line, f, tw), font=f, fill=BLACK)
-        y += round(size * 1.1)
-    d.text((tx, y + 8), fit(d, item["artist"], sans(22, 550), tw), font=sans(22, 550), fill=RED)
-    # « Album · 2021 » puis « Label · Pays », calés en bas de la pochette
-    det = item["details"]
-    rows = [det[0].replace(" — ", " · ")] + ([" · ".join(det[1:3])] if len(det) > 1 else [])
-    for i, row in enumerate(reversed(rows)):
-        d.text((tx, top + cs - i * 22), fit(d, row, mono(15), tw - qs - 20), font=mono(15), fill=BLACK, anchor="ls")
-    qr(d, item["link"], R - qs, top + cs - qs, qs)
+        d.rectangle((L, T, L + cs, T + cs), fill=WHITE, outline=BLACK, width=2)
 
-    # Météo : grande température, infos, quatre créneaux
-    rule = top + cs + 20
-    d.line((L, rule, R, rule), fill=BLACK, width=2)
-    wy = rule + 18
-    hue = BLUE if wx["tmax"] < 12 else RED if wx["tmax"] >= 24 else BLACK  # frais / doux / chaud
-    d.text((L - 4, B), f"{wx['tmax']}°", font=sans(110, 340), fill=hue, anchor="ls")
-    ix = L + 204
-    d.text((ix, wy - 4), "Lille", font=sans(22, 550), fill=BLACK)
-    for i, text in enumerate((wx["label"], f"min {wx['tmin']}°", f"pluie {wx['rain']}%")):
-        wet = text.startswith("pluie") and wx["rain"] >= 50
-        d.text((ix, wy + 30 + i * 24), text, font=mono(15, bold=wet), fill=BLUE if wet else BLACK)
-    col = 64
-    for i, (h, code, t) in enumerate(wx["slots"]):
-        cx = R - col * (3 - i) - col // 2
-        d.text((cx, wy), f"{h}h", font=mono(15), fill=BLACK, anchor="ma")
-        icon(d, cx, wy + 52, 15, code)
-        d.text((cx, B), f"{t}°", font=sans(24, 500), fill=BLACK, anchor="ms")
+    # Colonne de droite : d'où vient l'artiste
+    cx = vx + r + 22
+    cw = R - cx
+    d.text((cx, T), "320kbps.club", font=mono(14, bold=True), fill=RED)
+    d.text((cx, T + 19), f"{JOURS[now.weekday()]} {now.day} {MOIS[now.month - 1]}", font=mono(13), fill=BLACK)
+    mh = cs - 92
+    carte, place = origin_map(item["country"], cw, mh, ink)
+    if carte:
+        img.paste(carte, (cx, T + 50))
+        d.text((cx, T + cs), fit(d, place, sans(18, 550), cw), font=sans(18, 550), fill=BLACK, anchor="ls")
+    elif item.get("tracks"):  # les albums n'ont pas d'origine dans le flux : leur tracklist
+        y = T + 56
+        head = " · ".join(x for x in (item["kind"], item["year"], item.get("style", "")) if x)
+        d.text((cx, y), fit(d, head, mono(13, bold=True), cw), font=mono(13, bold=True), fill=BLACK)
+        d.line((cx, y + 22, R, y + 22), fill=BLACK, width=2)
+        y += 34
+        for n, name in item["tracks"][:8]:
+            d.text((cx, y), n.rjust(2), font=mono(13), fill=RED)
+            d.text((cx + 26, y - 2), fit(d, name, sans(16, 400), cw - 26), font=sans(16, 400), fill=BLACK)
+            y += 24
+
+    # Bandeau du bas : titre en grand, artiste en rouge, une ligne de détails, QR
+    tw = R - L - qr(d, item["link"], R, B) - 24
+    for size in range(50, 25, -2):
+        f = sans(size, 300)
+        if d.textlength(item["title"], font=f) <= tw:
+            break
+    base = T + cs + 26 + size  # titre, artiste et détails serrés en un bloc
+    d.text((L - 2, base), fit(d, item["title"], f, tw), font=f, fill=BLACK, anchor="ls")
+    d.text((L, base + 36), fit(d, item["artist"], sans(24, 600), tw), font=sans(24, 600), fill=RED, anchor="ls")
+    details = " · ".join(x for x in (item["album"], item["year"], item["label"]) if x)
+    if details:
+        d.text((L, base + 62), fit(d, details, mono(13), tw), font=mono(13), fill=BLACK, anchor="ls")
     return img
 
+
+# --- Affichage et synchro --------------------------------------------------
 
 def load_state():
     state = json.loads(STATE.read_text()) if STATE.exists() else {}
@@ -275,9 +269,8 @@ def load_state():
 def show(guid=None, command=0):
     state = load_state()
     seen = state.get("seen", [])
-    now = datetime.now()
     item = pick_item(seen, guid)
-    img = render(item, get_weather("--soir" in sys.argv or now.hour >= 15), now)
+    img = render(item, datetime.now())
     preview = img.copy()
     preview.putpalette(SEEN)  # aperçu proche du rendu réel de l'encre
     preview.convert("RGB").save(HERE / "preview.png")

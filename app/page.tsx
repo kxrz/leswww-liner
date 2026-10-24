@@ -5,7 +5,7 @@ import { Ext } from "./Ext";
 import { Frame } from "./Frame";
 import { Marquee } from "./Marquee";
 import { landingJsonLd } from "@/lib/jsonld";
-import { SITE } from "@/lib/site";
+import { PARTS, SITE } from "@/lib/site";
 import { listVisuals, readStatus, slug } from "@/lib/store";
 
 // Public page: rebuilt at most every ten minutes, so a busy day costs nothing to the frame's storage
@@ -38,7 +38,7 @@ const FAQ = [
   },
   {
     q: "Can I buy one ready-made?",
-    a: "Not at the moment: the build guide is free and takes about an afternoon. For something made to measure, talk to LesWWW.",
+    a: "Not at the moment: the parts cost about €100 with the deals (€120 otherwise), the build guide is free and it takes about an afternoon. For something made to measure, talk to LesWWW.",
   },
 ];
 
@@ -166,14 +166,22 @@ export default async function Home() {
 
           <section className="block" id="build" aria-labelledby="build-title">
             <h2 id="build-title">Build it</h2>
-            <p className="block-lede">About €140 of parts and an afternoon. No soldering, no subscription.</p>
+            <p className="block-lede">
+              Parts for {PARTS.cost}, and an afternoon. No soldering, no subscription.
+            </p>
             <dl className="specs">
-              <dt className="label">Computer</dt><dd>Raspberry Pi Zero 2 WH, with its header soldered</dd>
-              <dt className="label">Screen</dt><dd>Pimoroni Inky Impression 7.3&quot; Spectra 6 · 800 × 480 · six inks</dd>
+              <dt className="label">Computer</dt>
+              <dd><Ext href={PARTS.pi} sponsored>Raspberry Pi Zero 2 WH</Ext>, with its header soldered</dd>
+              <dt className="label">Screen</dt>
+              <dd><Ext href={PARTS.panel} sponsored>Pimoroni Inky Impression 7.3&quot; Spectra 6</Ext> · 800 × 480 · six inks</dd>
               <dt className="label">Frame</dt><dd>A plain photo frame with a mat, a microSD card and a 5 V power supply</dd>
               <dt className="label">Software</dt><dd>Python and Pillow on the Pi · Next.js and Vercel Blob in the cloud, both open source</dd>
               <dt className="label">Data</dt><dd>320kbps.club · MusicBrainz · Natural Earth · OpenStreetMap</dd>
             </dl>
+            <p className="label disclosure">
+              The Raspberry Pi and Pimoroni links are affiliate links: buying through them supports the project at no
+              extra cost to you.
+            </p>
             <div className="actions">
               <Ext href={SITE.build} className="btn">Read the build guide <span aria-hidden="true">→</span></Ext>
               <Ext href={SITE.repo} className="btn secondary">Source on GitHub</Ext>

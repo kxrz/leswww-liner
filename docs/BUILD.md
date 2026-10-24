@@ -1,17 +1,20 @@
 # Build your own Liner
 
-About an afternoon, no soldering if you buy the Pi with its header already on.
+About an afternoon and €100 to €120 of parts (about €100 if you catch the deals), no soldering if you buy the Pi
+with its header already on.
 
 ## Parts
 
 | Part | Notes |
 |---|---|
-| Raspberry Pi Zero 2 **WH** | The "H" has the GPIO header soldered. Any Pi with a 40-pin header works; the Zero fits behind a frame |
-| [Pimoroni Inky Impression 7.3"](https://shop.pimoroni.com/products/inky-impression-7-3) **Spectra 6** | 800 × 480, six inks. The older ACeP 7-colour version also exists: this code targets Spectra 6 |
+| [Raspberry Pi Zero 2 **WH**](https://link.amazon/B0dEvxBv2)* | The "H" has the GPIO header soldered. Any Pi with a 40-pin header works; the Zero fits behind a frame |
+| [Pimoroni Inky Impression 7.3" **Spectra 6**](https://shop.pimoroni.com/en-eu/products/inky-impression?variant=56039376912763)* | 800 × 480, six inks. The older ACeP 7-colour version also exists: this code targets Spectra 6 |
 | microSD card | 16 GB is plenty |
 | 5 V micro-USB power supply | 2.5 A, with a long, thin cable to run down the wall |
 | A photo frame with a mat | The mat's opening should be a little smaller than the panel's active area (about 160 × 96 mm), so it hides the edges |
 | Double-sided foam tape or standoffs | To hold the panel against the mat |
+
+\* Affiliate links: buying through them supports the project at no extra cost to you.
 
 ## 1. Prepare the Pi
 

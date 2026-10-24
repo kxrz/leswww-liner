@@ -15,7 +15,7 @@ Liner is an open-source e-ink picture frame for music by LesWWW; it is not relat
 - Software: Python and Pillow on the Pi (layout, dithering, display); Next.js on Vercel (control room, map rendering with sharp, Vercel Blob storage).
 - Rendering: text is never antialiased; only the cover is dithered (Floyd-Steinberg) towards the colours the panel actually shows.
 - Pictures: every redraw produces three images, downloadable from the control room: the colour e-ink picture, a black and white version for mono e-ink panels, and a 3840 × 2160 wallpaper with the same layout drawn smooth.
-- Cost and effort: about €140 of parts (Pi Zero 2 W, Inky Impression 7.3" Spectra 6, microSD card, power supply, frame) and an afternoon to build. No subscription.
+- Cost and effort: about €100 of parts with the deals, €120 otherwise (Pi Zero 2 W, Inky Impression 7.3" Spectra 6, microSD card, power supply, frame), and an afternoon to build. No subscription.
 - Licence: MIT. Source code: https://github.com/kxrz/leswww-liner
 
 ## People and organisations

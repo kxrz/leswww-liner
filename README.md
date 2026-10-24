@@ -53,11 +53,14 @@ on the wall and whether the frame is online, change the track, follow another fe
 
 | | |
 |---|---|
-| Computer | Raspberry Pi Zero 2 W, Raspberry Pi OS Bookworm (Lite is enough) |
-| Screen | [Pimoroni Inky Impression 7.3"](https://shop.pimoroni.com/products/inky-impression-7-3) **Spectra 6** (800 × 480; black, white, yellow, red, blue, green) |
+| Computer | [Raspberry Pi Zero 2 WH](https://link.amazon/B0dEvxBv2)*, Raspberry Pi OS Bookworm (Lite is enough) |
+| Screen | [Pimoroni Inky Impression 7.3" **Spectra 6**](https://shop.pimoroni.com/en-eu/products/inky-impression?variant=56039376912763)* (800 × 480; black, white, yellow, red, blue, green) |
 | Frame | Any photo frame with a mat. The mat hides the edges of the panel, so the layout stays inside the [visible area](#visible-area) |
 
-Two panels are sold as "Inky Impression 7.3"": this code targets the 2025 Spectra 6 (no orange ink).
+Parts cost about €100 with the deals, €120 otherwise. Two panels are sold as "Inky Impression 7.3"": this code
+targets the 2025 Spectra 6 (no orange ink).
+
+\* Affiliate links: buying through them supports the project at no extra cost to you.
 
 ## How it works
 

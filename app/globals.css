@@ -1421,3 +1421,9 @@ form.actions .btn {
 .phone figcaption {
   margin-top: 0.75rem;
 }
+
+.disclosure {
+  margin-top: 0.9rem;
+  text-transform: none;
+  letter-spacing: 0;
+}

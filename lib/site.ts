@@ -15,6 +15,13 @@ export const SITE = {
   music: "https://www.320kbps.club",
 } as const;
 
+/** Where to buy the two main parts. Affiliate links: marked rel="sponsored" and disclosed next to them. */
+export const PARTS = {
+  pi: "https://link.amazon/B0dEvxBv2",
+  panel: "https://shop.pimoroni.com/en-eu/products/inky-impression?variant=56039376912763",
+  cost: "about €100 with the deals, €120 otherwise",
+} as const;
+
 /** Legal pages live on the main LesWWW site. */
 export const LEGAL = [
   { label: "Legal notice", href: `${SITE.studio}/mentions-legales` },

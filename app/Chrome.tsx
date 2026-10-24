@@ -2,24 +2,26 @@ import Link from "next/link";
 import { Wordmark } from "./Logo";
 import { LEGAL } from "@/lib/site";
 
-/** Sticky header, as on leswww.com: the wordmark on the left, mono labels and one lemon block on the right. */
+const BUILD = "https://github.com/kxrz/leswww-liner/blob/main/docs/BUILD.md";
+
+/** Sticky header, as on leswww.com: the wordmark (home of the project) on the left, one lemon call to action on the right. */
 export function Nav({ control = false }: { control?: boolean }) {
   return (
     <header className="nav">
       <div className="nav-inner">
-        <div className="brand">
-          <a href="https://leswww.com" aria-label="leswww.com"><Wordmark className="wordmark" /></a>
+        <Link href="/" className="brand" aria-label="Liner, home">
+          <Wordmark className="wordmark" />
           <span className="label">/</span>
-          <Link href="/" className="label product">Liner</Link>
-        </div>
+          <span className="label product">Liner</span>
+        </Link>
         <nav className="label">
+          <Link href="/#how" className="hide-mobile">How it works</Link>
           <Link href="/gallery">Gallery</Link>
-          <a href="https://www.320kbps.club" className="hide-mobile">320kbps.club</a>
           <a href="https://github.com/kxrz/leswww-liner" className="hide-mobile">GitHub</a>
           {control ? (
             <Link href="/" className="block-link">About Liner</Link>
           ) : (
-            <Link href="/control" className="block-link">Control room</Link>
+            <a href={BUILD} className="block-link">Build yours</a>
           )}
         </nav>
       </div>
@@ -40,6 +42,7 @@ export function Footer() {
           <a href="https://www.320kbps.club">320kbps.club</a>
           <a href="https://github.com/kxrz/leswww-liner">GitHub</a>
           <a href="https://github.com/kxrz/leswww-liner/blob/main/LICENSE">MIT License</a>
+          <Link href="/control">Control room</Link>
           {LEGAL.map((l) => (
             <a key={l.href} href={l.href}>{l.label}</a>
           ))}

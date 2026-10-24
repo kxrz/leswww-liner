@@ -40,6 +40,7 @@
 html {
   -webkit-font-smoothing: antialiased;
   scroll-behavior: smooth;
+  scroll-padding-top: 6.5rem; /* the sticky header does not cover anchors */
 }
 
 body {
@@ -305,9 +306,12 @@ form.actions .btn {
   }
 }
 
+.brand {
+  text-decoration: none;
+}
+
 .brand .product {
   color: var(--ink);
-  text-decoration: none;
 }
 
 .nav nav {
@@ -420,6 +424,67 @@ form.actions .btn {
   max-width: 48rem;
   font-size: clamp(1.125rem, 2.5vw, 1.25rem);
   line-height: 1.4;
+}
+
+.hero-split {
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+@media (min-width: 60rem) {
+  .hero-split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 3.5rem;
+  }
+
+  .hero-split h1 {
+    font-size: clamp(2.4rem, 4vw, 3.4rem);
+  }
+}
+
+.hero-tags a.tag {
+  text-decoration: none;
+}
+
+.perks {
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.perks li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.perks li::before {
+  content: "";
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--accent);
+  border: 1px solid var(--ink);
+  transform: translateY(0.05rem);
+}
+
+.hero-frame {
+  margin: 0;
+}
+
+/* On a phone the frame comes first: the object is what catches the eye */
+@media (max-width: 59.99rem) {
+  .hero-frame {
+    order: -1;
+  }
+}
+
+.hero-frame figcaption {
+  margin-top: 1rem;
+  line-height: 1.8;
 }
 
 .showcase {

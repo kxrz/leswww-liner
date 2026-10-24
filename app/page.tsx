@@ -35,32 +35,40 @@ export default async function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(landingJsonLd()) }} />
       <Nav />
       <main className="wrap">
-        <section className="hero">
-          <div className="hero-tags">
-            <span className="tag tag-live">Project</span>
-            <span className="label">A LesWWW project · music from 320kbps.club</span>
-          </div>
-          <h1>
-            Liner, <mark>one track on the wall.</mark>
-          </h1>
-          <p className="lede">
-            An e-ink frame that hangs a single track from <a href="https://www.320kbps.club">320kbps.club</a>, twice a day:
-            the cover and its liner notes on a museum label, laid over a map of where the artist comes from.
-          </p>
-          <div className="actions">
-            <Link href="/control" className="btn">Open the control room →</Link>
-            <a href="https://github.com/kxrz/leswww-liner" className="btn secondary">Read the code</a>
-          </div>
-        </section>
-
-        <section className="showcase">
-          <Frame src={current?.eink?.url ?? SAMPLES[1]} alt={status ? `${status.artist} — ${status.title}` : "Thomas Bangalter on Liner"} />
-          {status && (
-            <p className="label center">
-              On the wall now · <strong>{status.artist}</strong> — {status.title}
-              {status.place ? ` · ${status.place}` : ""}
+        {/* AIDA: the picture and the headline catch the eye, the lede explains, the list makes you want one, the buttons act */}
+        <section className="hero hero-split">
+          <div className="hero-copy">
+            <div className="hero-tags">
+              <a href="https://www.leswww.com" className="tag tag-live">A LesWWW project</a>
+              <span className="label">Music from 320kbps.club</span>
+            </div>
+            <h1>
+              One track on your wall, <mark>like a work in a museum.</mark>
+            </h1>
+            <p className="lede">
+              Liner is an e-ink frame that hangs a single track from <a href="https://www.320kbps.club">320kbps.club</a>,
+              twice a day: its cover and liner notes on a museum label, over a map of where the artist comes from.
             </p>
-          )}
+            <ul className="perks">
+              <li>Picked by a curator, never an algorithm</li>
+              <li>Where the artist comes from, mapped</li>
+              <li>A free 4K wallpaper of every track</li>
+              <li>Open source: a Pi, a panel, an afternoon</li>
+            </ul>
+            <div className="actions">
+              <a href="https://github.com/kxrz/leswww-liner/blob/main/docs/BUILD.md" className="btn">Build your own →</a>
+              <Link href="/gallery" className="btn secondary">Get the wallpapers</Link>
+            </div>
+          </div>
+          <figure className="hero-frame">
+            <Frame src={current?.eink?.url ?? SAMPLES[1]} alt={status ? `${status.artist} — ${status.title}` : "Thomas Bangalter on Liner"} />
+            {status && (
+              <figcaption className="label">
+                <span className="tag tag-live">On the wall now</span> <strong>{status.artist}</strong> — {status.title}
+                {status.place ? ` · ${status.place}` : ""}
+              </figcaption>
+            )}
+          </figure>
         </section>
       </main>
 
@@ -123,7 +131,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="block">
+        <section className="block" id="how">
           <h2>How it works</h2>
           <ol className="how">
             <li><span className="label">01</span><p><strong>7:00 and 19:00.</strong> The Raspberry Pi takes the newest track it has not shown yet from 320kbps.club.</p></li>

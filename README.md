@@ -67,7 +67,7 @@ Two panels are sold as "Inky Impression 7.3"": this code targets the 2025 Spectr
 - The Pi sits behind a home router, so Vercel cannot reach it: **the Pi polls** the page every minute. A request
   takes up to a minute to be picked up, then about 30 seconds of e-ink redraw. The page follows along and flashes
   when the frame is done.
-- **The Pi draws the layout** (Python, Pillow). **Vercel draws the map** (`/api/map`, SVG rasterised by sharp, cached
+- **The Pi draws the layout** (Python, Pillow). **Vercel draws the map** (`/api/map`, SVG rasterised by resvg, cached
   by the CDN for good), so outlines, geocoding and MusicBrainz stay off the Pi Zero.
 - Every redraw yields **three pictures**, all uploaded and downloadable from the control room: what the colour
   panel shows (PNG), the same for a black and white panel (1-bit PNG), and a **4K wallpaper** (3840 × 2160 JPEG,

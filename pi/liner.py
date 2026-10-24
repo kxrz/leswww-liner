@@ -18,6 +18,7 @@ import html
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import xml.etree.ElementTree as ET
@@ -28,6 +29,13 @@ from urllib.parse import unquote
 
 import requests
 from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
+
+try:  # hardened XML parsing for feeds from the internet (apt: python3-defusedxml)
+    from defusedxml.ElementTree import fromstring as parse_xml
+except ImportError:
+    parse_xml = ET.fromstring
+
+Image.MAX_IMAGE_PIXELS = 40_000_000  # a cover is a few megapixels; refuse decompression bombs on a 512 MB Pi
 
 HERE = Path(__file__).resolve().parent
 STATE = HERE / "state.json"
@@ -66,9 +74,23 @@ def mono(size, bold=False):
 
 # --- Data ------------------------------------------------------------------
 
+def fetch(url, limit=5_000_000, timeout=20):
+    """Download at most `limit` bytes over https: a huge feed or cover must not run the Pi out of memory."""
+    if not url.startswith("https://"):
+        raise requests.RequestException(f"not https: {url}")
+    with requests.get(url, timeout=timeout, stream=True) as r:
+        r.raise_for_status()
+        data = b""
+        for chunk in r.iter_content(65536):
+            data += chunk
+            if len(data) > limit:
+                raise requests.RequestException(f"too large: {url}")
+        return data
+
+
 def pick_item(seen, guid=None, feed=FEED):
     """The requested track, otherwise the newest one not shown yet (starting over once all have been shown)."""
-    root = ET.fromstring(requests.get(feed, timeout=20).content)
+    root = parse_xml(fetch(feed))
     items = [i for i in root.iter("item") if "/playlist/" not in i.findtext("link")]
     item = next((i for i in items if i.findtext("guid") == guid), None) if guid else None
     if item is None:
@@ -119,7 +141,7 @@ def pick_item(seen, guid=None, feed=FEED):
 def album_page(link):
     """An album's year and style, read from its page (the feed only carries an editorial text)."""
     try:
-        page = requests.get(link, timeout=20).text
+        page = fetch(link).decode("utf-8", "replace")
     except requests.RequestException:
         return {}
     page = re.sub(r"<script.*?</script>|<style.*?</style>", "", page, flags=re.S)
@@ -154,7 +176,7 @@ HD_X = (HD_SIZE[0] - round(W * HD_SCALE)) // 2
 
 
 def fetch_cover(url):
-    return Image.open(BytesIO(requests.get(url, timeout=20).content)).convert("RGB") if url else None
+    return Image.open(BytesIO(fetch(url, limit=10_000_000))).convert("RGB") if url else None
 
 
 def dither(raw, size, bw=False):
@@ -378,7 +400,8 @@ def heartbeat(state):
     try:
         temp = int(Path("/sys/class/thermal/thermal_zone0/temp").read_text()) / 1000
         uptime = float(Path("/proc/uptime").read_text().split()[0])
-        version = os.popen(f"git -C {HERE} rev-parse --short HEAD 2>/dev/null").read().strip()
+        version = subprocess.run(["git", "-C", str(HERE), "rev-parse", "--short", "HEAD"],
+                                 capture_output=True, text=True).stdout.strip()
         requests.post(f"{URL}/api/pi/heartbeat", headers=AUTH, timeout=20,
                       json={"temp": temp, "uptime": uptime, "version": version}).raise_for_status()
         state["heartbeat"] = time.time()
@@ -411,7 +434,7 @@ def sync():
 
 def seed(count):
     """Draw the newest tracks of the feed in all three versions, without touching the screen, for the gallery."""
-    root = ET.fromstring(requests.get(load_state().get("feed", FEED), timeout=20).content)
+    root = parse_xml(fetch(load_state().get("feed", FEED)))
     guids = [i.findtext("guid") for i in root.iter("item") if "/playlist/" not in i.findtext("link")][:count]
     out = HERE / "seed"
     out.mkdir(exist_ok=True)

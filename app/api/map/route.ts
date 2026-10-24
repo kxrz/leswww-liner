@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const [x0, y0, x1, y1] = (q.get("box") ?? `0,0,${w},${h}`).split(",").map(Number);
   const bg = (q.get("bg") ?? "white") as Ink;
   const ink = (q.get("ink") ?? "black") as Ink;
-  if (!(hint || artist) || !(bg in INKS) || !(ink in INKS) || [x0, y0, x1, y1].some(Number.isNaN)) {
+  if (!(hint || artist) || !Object.hasOwn(INKS, bg) || !Object.hasOwn(INKS, ink) || [x0, y0, x1, y1].some(Number.isNaN)) {
     return new Response("Bad request", { status: 400 });
   }
 

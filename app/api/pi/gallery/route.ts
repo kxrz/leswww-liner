@@ -4,11 +4,14 @@ import { addToGallery, removeFromGallery, slug } from "@/lib/store";
 /** The frame adds a track it has drawn without hanging it (liner.py --seed), so the gallery is not empty. */
 export async function POST(request: Request) {
   if (!isDevice(request)) return new Response("Unauthorized", { status: 401 });
-  const s = (await request.json()) as { guid?: unknown; title?: unknown; artist?: unknown; place?: unknown };
-  if (typeof s.guid !== "string" || typeof s.title !== "string") return new Response("Bad request", { status: 400 });
+  const s = (await request.json().catch(() => ({}))) as { guid?: unknown; title?: unknown; artist?: unknown; place?: unknown };
+  if (typeof s.guid !== "string" || !s.guid.startsWith("https://") || typeof s.title !== "string") {
+    return new Response("Bad request", { status: 400 });
+  }
+  const cap = (v: unknown) => (typeof v === "string" ? v.slice(0, 200) : undefined);
   await addToGallery({
-    slug: slug(s.guid), guid: s.guid, title: s.title, artist: String(s.artist ?? ""),
-    place: typeof s.place === "string" ? s.place : undefined, at: new Date().toISOString(),
+    slug: slug(s.guid), guid: s.guid, title: s.title.slice(0, 200), artist: cap(s.artist) ?? "",
+    place: cap(s.place), at: new Date().toISOString(),
   });
   return new Response(null, { status: 204 });
 }

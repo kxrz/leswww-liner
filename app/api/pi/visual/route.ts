@@ -9,7 +9,7 @@ export async function PUT(request: Request) {
   const kind = (q.get("kind") ?? "eink") as Kind;
   const data = await request.arrayBuffer();
   // Vercel functions accept bodies up to 4.5 MB; the 4K wallpaper is a JPEG for that reason
-  if (!guid?.startsWith("https://www.320kbps.club/") || !(kind in KINDS) || data.byteLength === 0 || data.byteLength > 4_400_000) {
+  if (!guid?.startsWith("https://www.320kbps.club/") || !Object.hasOwn(KINDS, kind) || data.byteLength === 0 || data.byteLength > 4_400_000) {
     return new Response("Bad request", { status: 400 });
   }
   return Response.json(await saveVisual(guid, kind, data));

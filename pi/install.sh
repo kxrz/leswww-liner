@@ -2,7 +2,7 @@
 # Install or update Liner's services. Run on the Pi from ~/liner/pi.
 set -e
 cd "$(dirname "$0")"
-sudo apt-get install -y -qq python3-requests python3-pil >/dev/null
+sudo apt-get install -y -qq python3-requests python3-pil python3-defusedxml >/dev/null
 python3 -c "import inky" 2>/dev/null || sudo pip3 install --break-system-packages "inky[rpi]"
 
 # Earlier installs called everything "cadre"
@@ -12,6 +12,7 @@ if [ -f /etc/systemd/system/cadre.timer ]; then
   [ -f cadre.env ] && [ ! -f liner.env ] && sed 's/^CADRE_/LINER_/' cadre.env > liner.env && chmod 600 liner.env && rm cadre.env
 fi
 
+[ -f liner.env ] && chmod 600 liner.env  # it holds the frame's token
 sudo cp systemd/*.service systemd/*.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now liner.timer

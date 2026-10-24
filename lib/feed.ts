@@ -1,5 +1,6 @@
 export type Item = { guid: string; link: string; title: string; artist: string; album: boolean; cover?: string };
 
+import { fetchFeed } from "./fetch-feed";
 import { SITE_FEED } from "./sources";
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
@@ -16,7 +17,7 @@ function tag(block: string, name: string): string {
 
 /** Tracks and albums from a feed, newest first (playlists are left out). */
 export async function getItems(feed: string = SITE_FEED.url): Promise<Item[]> {
-  const xml = await fetch(feed, { next: { revalidate: 600 } }).then((r) => r.text());
+  const xml = await fetchFeed(feed, 600);
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)]
     .map(([, block]) => {
       const raw = tag(block, "title");

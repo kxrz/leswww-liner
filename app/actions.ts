@@ -2,13 +2,15 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { COOKIE, fingerprint, isLoggedIn } from "@/lib/auth";
+import { COOKIE, fingerprint, isLoggedIn, same } from "@/lib/auth";
+import { fetchFeed } from "@/lib/fetch-feed";
 import { listSources, SITE_FEED } from "@/lib/sources";
 import { writeCommand, writeSettings, type Command } from "@/lib/store";
 
 export async function login(form: FormData) {
   const password = process.env.SITE_PASSWORD;
-  if (password && form.get("password") === password) {
+  const given = String(form.get("password") ?? "");
+  if (password && same(fingerprint(given), fingerprint(password))) {
     (await cookies()).set(COOKIE, fingerprint(password), {
       httpOnly: true,
       secure: true,
@@ -17,6 +19,7 @@ export async function login(form: FormData) {
     });
     redirect("/control");
   }
+  await new Promise((r) => setTimeout(r, 1000)); // slows down guessing
   redirect("/control?wrong=1");
 }
 
@@ -39,11 +42,10 @@ export async function setSource(form: FormData) {
     redirect("/control?source=reset");
   }
   const feed = String(form.get("feed") ?? "").trim();
-  if (!/^https:\/\/[^\s]+$/.test(feed)) redirect("/control?source=invalid");
-  const xml = await fetch(feed, { cache: "no-store" }).then((r) => (r.ok ? r.text() : "")).catch(() => "");
+  const xml = await fetchFeed(feed);
   if (!/<item[\s>]/.test(xml)) redirect("/control?source=invalid");
   const known = (await listSources()).flatMap((g) => g.sources).find((x) => x.url === feed)?.label;
-  const title = xml.match(/<channel>[\s\S]*?<title>([^<]+)<\/title>/)?.[1]?.trim();
+  const title = xml.match(/<channel>[\s\S]*?<title>([^<]+)<\/title>/)?.[1]?.trim().slice(0, 120);
   await writeSettings({ feed, feedLabel: known ?? title ?? feed });
   redirect("/control?source=saved");
 }

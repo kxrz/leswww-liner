@@ -14,21 +14,22 @@ export async function GET(request: Request) {
 /** The frame reports what it just drew. */
 export async function POST(request: Request) {
   if (!isDevice(request)) return new Response("Unauthorized", { status: 401 });
-  const s = (await request.json()) as Partial<Status>;
-  if (typeof s.guid !== "string" || typeof s.title !== "string") {
+  const s = (await request.json().catch(() => ({}))) as Partial<Status>;
+  if (typeof s.guid !== "string" || !s.guid.startsWith("https://") || typeof s.title !== "string") {
     return new Response("Bad request", { status: 400 });
   }
   const at = new Date().toISOString();
-  const place = typeof s.place === "string" ? s.place : undefined;
-  const refused = typeof s.refused === "string" ? s.refused : undefined;
+  const cap = (v: unknown) => (typeof v === "string" ? v.slice(0, 200) : undefined);
+  const place = cap(s.place);
+  const refused = cap(s.refused);
   if (!refused) {
-    await addToGallery({ slug: slug(s.guid), guid: s.guid, title: s.title, artist: String(s.artist ?? ""), place, at });
+    await addToGallery({ slug: slug(s.guid), guid: s.guid, title: s.title.slice(0, 200), artist: cap(s.artist) ?? "", place, at });
   }
   await writeStatus({
     at,
     guid: s.guid,
-    title: s.title,
-    artist: String(s.artist ?? ""),
+    title: s.title.slice(0, 200),
+    artist: cap(s.artist) ?? "",
     command: Number(s.command ?? 0),
     place,
     visual: typeof s.visual === "string" ? s.visual : undefined,

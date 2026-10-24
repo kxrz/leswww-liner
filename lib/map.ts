@@ -1,4 +1,4 @@
-import sharp from "sharp";
+import { Resvg } from "@resvg/resvg-js";
 import countries from "./countries.json";
 import { readOrigin, writeOrigin } from "./store";
 
@@ -198,5 +198,5 @@ export async function renderMap(
 <path d="${path(place.country.rings)}" fill="url(#t)" stroke="${fg}" stroke-width="${3 * u}" stroke-linejoin="round"/>
 ${city ? `<circle cx="${city[0]}" cy="${city[1]}" r="${9 * u}" fill="${back}" stroke="${fg}" stroke-width="${3 * u}"/><circle cx="${city[0]}" cy="${city[1]}" r="${3 * u}" fill="${fg}"/>` : ""}
 </svg>`;
-  return { png: await sharp(Buffer.from(svg)).png().toBuffer(), label: place.label };
+  return { png: new Resvg(svg).render().asPng(), label: place.label };
 }

@@ -54,7 +54,10 @@ Two panels are sold as "Inky Impression 7.3"": this code targets the 2025 Spectr
   when the frame is done.
 - **The Pi draws the layout** (Python, Pillow). **Vercel draws the map** (`/api/map`, SVG rasterised by sharp, cached
   by the CDN for good), so outlines, geocoding and MusicBrainz stay off the Pi Zero.
-- Every picture the frame draws is uploaded, shown on the page in a frame mockup, and **downloadable as a PNG**.
+- Every redraw yields **three pictures**, all uploaded and downloadable from the control room: what the colour
+  panel shows (PNG), the same for a black and white panel (1-bit PNG), and a **4K wallpaper** (3840 × 2160 JPEG,
+  same layout drawn smooth: full-definition cover, vector map in the panel's tones). The Pi draws the e-ink one
+  first and makes the other two once the frame is up to date.
 - Without the web page (no `liner.env`), the frame still runs on its own, twice a day, without maps.
 
 ## Repository
@@ -130,6 +133,17 @@ On a phone, "Add to Home Screen" turns the page into a small app. Locally: `npm 
 - **The map** is an SVG drawn with `shape-rendering="crispEdges"` in pure inks, mapped back to the palette without
   dithering on the Pi.
 - **Previews and downloads** use the ink colours, so their greyish white is the panel's real white.
+
+### Web
+
+- `/` is the public landing page: today's picture in a frame mockup, a before/after slider (HD vs e-ink), the black
+  and white version, how it works, hardware, credits. It is rebuilt at most every ten minutes.
+- SEO and GEO: canonical URL, Open Graph image, a JSON-LD graph (page, creative work, source code, Florent
+  Bertiaux, LesWWW, 320kbps.club), `robots.txt`, `sitemap.xml` and [`llms.txt`](public/llms.txt).
+- Vercel Analytics (cookieless). Legal notice, privacy policy and terms are those of
+  [leswww.com](https://www.leswww.com/mentions-legales).
+- Styled after the LesWWW charter: Big Shoulders, Public Sans and IBM Plex Mono, black and white, lemon for
+  interactive things only, cyan for verified data.
 
 ### Origins
 

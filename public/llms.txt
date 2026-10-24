@@ -12,6 +12,7 @@
 - Hardware: Raspberry Pi Zero 2 W; Pimoroni Inky Impression 7.3" Spectra 6 (800 × 480 pixels, six inks: black, white, yellow, red, blue, green); a photo frame with a mat.
 - Software: Python and Pillow on the Pi (layout, dithering, display); Next.js on Vercel (control room, map rendering with sharp, Vercel Blob storage).
 - Rendering: text is never antialiased; only the cover is dithered (Floyd-Steinberg) towards the colours the panel actually shows.
+- Pictures: every redraw produces three images, downloadable from the control room: the colour e-ink picture, a black and white version for mono e-ink panels, and a 3840 × 2160 wallpaper with the same layout drawn smooth.
 - Licence: MIT. Source code: https://github.com/kxrz/leswww-liner
 
 ## People and organisations

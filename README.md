@@ -13,6 +13,19 @@ A new track every morning and evening, and a small web page to change it from yo
   <img src="docs/the-verve.png" width="49%" alt="The Verve, Bitter Sweet Symphony: label over a black and white map of the United Kingdom, Wigan circled">
 </p>
 
+## Gallery
+
+Fifteen tracks as Liner drew them. Click one to listen on 320kbps.club; every picture, with its 4K wallpaper and
+black and white versions, is on [liner.leswww.com/gallery](https://liner.leswww.com/gallery).
+
+<table>
+<tr><td width="33%"><a href="https://www.320kbps.club/track/thomas-bangalter-mythologies-xix-circonvolutions-remix"><img src="docs/gallery/thomas-bangalter-mythologies-xix-circonvolutions-remix.png" alt="Thomas Bangalter — Mythologies: XIX. Circonvolutions (Remix) on Liner"></a><br><sub><a href="https://www.320kbps.club/track/thomas-bangalter-mythologies-xix-circonvolutions-remix">Thomas Bangalter — Mythologies: XIX. Circonvolutions (Remix)</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/balthazar-linger-on-sand-castle-tapes-version"><img src="docs/gallery/balthazar-linger-on-sand-castle-tapes-version.png" alt="Balthazar — Linger On (Sand Castle Tapes version) on Liner"></a><br><sub><a href="https://www.320kbps.club/track/balthazar-linger-on-sand-castle-tapes-version">Balthazar — Linger On (Sand Castle Tapes version)</a></sub></td><td width="33%"><a href="https://www.320kbps.club/album/magugu-le-motel-bitter-better-ep"><img src="docs/gallery/magugu-le-motel-bitter-better-ep.png" alt="Magugu & Le Motel — Bitter Better - EP on Liner"></a><br><sub><a href="https://www.320kbps.club/album/magugu-le-motel-bitter-better-ep">Magugu & Le Motel — Bitter Better - EP</a></sub></td></tr>
+<tr><td width="33%"><a href="https://www.320kbps.club/album/nine-inch-nails-still"><img src="docs/gallery/nine-inch-nails-still.png" alt="Nine Inch Nails — Still on Liner"></a><br><sub><a href="https://www.320kbps.club/album/nine-inch-nails-still">Nine Inch Nails — Still</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/agnes-obel-tangerine"><img src="docs/gallery/agnes-obel-tangerine.png" alt="Agnes Obel — Tangerine on Liner"></a><br><sub><a href="https://www.320kbps.club/track/agnes-obel-tangerine">Agnes Obel — Tangerine</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/the-bamboos-hard-up"><img src="docs/gallery/the-bamboos-hard-up.png" alt="The Bamboos — Hard Up on Liner"></a><br><sub><a href="https://www.320kbps.club/track/the-bamboos-hard-up">The Bamboos — Hard Up</a></sub></td></tr>
+<tr><td width="33%"><a href="https://www.320kbps.club/album/austin-tv-ma"><img src="docs/gallery/austin-tv-ma.png" alt="Austin TV — Ma on Liner"></a><br><sub><a href="https://www.320kbps.club/album/austin-tv-ma">Austin TV — Ma</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/deluxe-saxophone-concerto-e-minor-op-88"><img src="docs/gallery/deluxe-saxophone-concerto-e-minor-op-88.png" alt="Deluxe — Saxophone Concerto E Minor OP 88 on Liner"></a><br><sub><a href="https://www.320kbps.club/track/deluxe-saxophone-concerto-e-minor-op-88">Deluxe — Saxophone Concerto E Minor OP 88</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/the-verve-bitter-sweet-symphony-james-lavelle-remix"><img src="docs/gallery/the-verve-bitter-sweet-symphony-james-lavelle-remix.png" alt="The Verve — Bitter Sweet Symphony (James Lavelle Remix) on Liner"></a><br><sub><a href="https://www.320kbps.club/track/the-verve-bitter-sweet-symphony-james-lavelle-remix">The Verve — Bitter Sweet Symphony (James Lavelle Remix)</a></sub></td></tr>
+<tr><td width="33%"><a href="https://www.320kbps.club/track/manchester-orchestra-i-know-how-to-speak-acoustic-version"><img src="docs/gallery/manchester-orchestra-i-know-how-to-speak-acoustic-version.png" alt="Manchester Orchestra — I Know How to Speak (Acoustic Version) on Liner"></a><br><sub><a href="https://www.320kbps.club/track/manchester-orchestra-i-know-how-to-speak-acoustic-version">Manchester Orchestra — I Know How to Speak (Acoustic Version)</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/cheese-people-wake-up"><img src="docs/gallery/cheese-people-wake-up.png" alt="Cheese People — Wake Up on Liner"></a><br><sub><a href="https://www.320kbps.club/track/cheese-people-wake-up">Cheese People — Wake Up</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/dave-grohl-joshua-homme-trent-reznor-mantra"><img src="docs/gallery/dave-grohl-joshua-homme-trent-reznor-mantra.png" alt="Dave Grohl, Joshua Homme & Trent Reznor — Mantra on Liner"></a><br><sub><a href="https://www.320kbps.club/track/dave-grohl-joshua-homme-trent-reznor-mantra">Dave Grohl, Joshua Homme & Trent Reznor — Mantra</a></sub></td></tr>
+<tr><td width="33%"><a href="https://www.320kbps.club/track/omar-rodriguez-lopez-through-a-glass-darkly"><img src="docs/gallery/omar-rodriguez-lopez-through-a-glass-darkly.png" alt="Omar Rodriguez-Lopez — Through A Glass Darkly on Liner"></a><br><sub><a href="https://www.320kbps.club/track/omar-rodriguez-lopez-through-a-glass-darkly">Omar Rodriguez-Lopez — Through A Glass Darkly</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/synapson-bonga-mona-ki-ngi-xica"><img src="docs/gallery/synapson-bonga-mona-ki-ngi-xica.png" alt="Synapson & Bonga — Mona Ki Ngi Xica on Liner"></a><br><sub><a href="https://www.320kbps.club/track/synapson-bonga-mona-ki-ngi-xica">Synapson & Bonga — Mona Ki Ngi Xica</a></sub></td><td width="33%"><a href="https://www.320kbps.club/track/degiheugi-la-fine-equipe-favelas-la-fine-equipe-remix"><img src="docs/gallery/degiheugi-la-fine-equipe-favelas-la-fine-equipe-remix.png" alt="Degiheugi & La fine équipe — Favelas (La Fine Equipe Remix) on Liner"></a><br><sub><a href="https://www.320kbps.club/track/degiheugi-la-fine-equipe-favelas-la-fine-equipe-remix">Degiheugi & La fine équipe — Favelas (La Fine Equipe Remix)</a></sub></td></tr>
+</table>
+
 ## What is on the wall
 
 - **A duotone map** of the artist's home country, with its neighbours and a dotted graticule; a ring marks the city
@@ -106,6 +119,8 @@ Enable SPI and I2C first (`sudo raspi-config` › Interface Options). Update wit
 | What happened | `journalctl -u liner -u liner-sync -n 30` |
 | Next runs | `systemctl list-timers 'liner*'` |
 | Try a layout without touching the screen | `python3 liner.py --preview`, then open `preview.png` |
+| Fill the gallery with the newest tracks | `python3 liner.py --seed 15` (screen untouched) |
+| Show the calibration grid | `python3 calibrate.py` |
 
 `state.json` remembers the tracks already shown and the last request handled; delete it to start again from the
 newest track.
@@ -118,7 +133,10 @@ The Vercel project (`leswww-liner`, served at [liner.leswww.com](https://liner.l
 |---|---|
 | `BLOB_READ_WRITE_TOKEN` | Set by Vercel when the Blob store is connected |
 | `SITE_PASSWORD` | Password for the page. Without it, the page is open to anyone |
-| `DEVICE_TOKEN` | The frame's token, same as `LINER_TOKEN` in `pi/liner.env`. Without it, `/api/pi` is open |
+| `DEVICE_TOKEN` | The frame's token, same as `LINER_TOKEN` in `pi/liner.env`. Without it, `/api/pi` and `/api/map` are open |
+| `NEXT_PUBLIC_LINER_VISIBLE` | Your frame's visible area for the mockup, as in `LINER_VISIBLE` (default `52,35,748,480`) |
+| `RESEND_API_KEY`, `ALERT_EMAIL`, `ALERT_FROM` | Optional: a daily email when the frame has been silent for two hours |
+| `CRON_SECRET` | Optional: lets only Vercel's cron call the health check |
 
 On a phone, "Add to Home Screen" turns the page into a small app. Locally: `npm install && npm run dev`, with a
 `.env.local` (see `.env.example`).
@@ -138,6 +156,11 @@ On a phone, "Add to Home Screen" turns the page into a small app. Locally: `npm 
 
 ### Web
 
+- `/control` (password) shows the frame and its health (online, silent or asleep; temperature, uptime, code
+  version), sends requests, picks the **feed to follow** (any RSS feed; every 320kbps.club curator and playlist is
+  suggested), and offers the three downloads for each track.
+- `/gallery` lists what has hung on the wall: click a picture to hang it in the frame mockup, download the 4K
+  wallpaper, or listen on 320kbps.club.
 - `/` is the public landing page: today's picture in a frame mockup, a before/after slider (HD vs e-ink), the black
   and white version, how it works, hardware, credits. It is rebuilt at most every ten minutes.
 - SEO and GEO: canonical URL, Open Graph image, a JSON-LD graph (page, creative work, source code, Florent

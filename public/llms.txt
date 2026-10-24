@@ -1,0 +1,30 @@
+# Liner
+
+> Liner is an open-source e-ink frame that hangs one track from 320kbps.club at a time, twice a day: the cover and its liner notes on a museum label, laid over a map of where the artist comes from. It is a LesWWW project by Florent Bertiaux (Lille, France), released under the MIT License.
+
+## Facts
+
+- What: a picture frame with a colour e-ink panel that shows one music track at a time, like a work in a museum.
+- When: a new track at 7:00 and 19:00, or on request from a password-protected control room on liner.leswww.com.
+- Music: tracks and albums from 320kbps.club, a hand-curated music discovery site run by Florent Bertiaux.
+- Map: the artist's place of birth or formation (MusicBrainz "begin-area", checked against the 320kbps.club feed), drawn as a duotone map from Natural Earth outlines; cities are geocoded with OpenStreetMap Nominatim.
+- Colours: the duotone follows the cover's dominant ink (blue, red, green, yellow, or black and white).
+- Hardware: Raspberry Pi Zero 2 W; Pimoroni Inky Impression 7.3" Spectra 6 (800 × 480 pixels, six inks: black, white, yellow, red, blue, green); a photo frame with a mat.
+- Software: Python and Pillow on the Pi (layout, dithering, display); Next.js on Vercel (control room, map rendering with sharp, Vercel Blob storage).
+- Rendering: text is never antialiased; only the cover is dithered (Floyd-Steinberg) towards the colours the panel actually shows.
+- Licence: MIT. Source code: https://github.com/kxrz/leswww-liner
+
+## People and organisations
+
+- Florent Bertiaux: creative, curator and geek. Designed Liner, curates 320kbps.club, runs LesWWW.
+- LesWWW: Florent Bertiaux's creative technology studio in Lille, France. https://www.leswww.com
+- 320kbps.club: hand-curated music discovery, one track at a time. https://www.320kbps.club
+
+## Links
+
+- Landing page: https://liner.leswww.com
+- Source code and build guide: https://github.com/kxrz/leswww-liner
+- LesWWW: https://www.leswww.com
+- 320kbps.club: https://www.320kbps.club
+- Legal notice: https://www.leswww.com/mentions-legales
+- Privacy policy: https://www.leswww.com/politique-de-confidentialite

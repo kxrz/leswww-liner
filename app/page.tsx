@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Footer, Nav } from "./Chrome";
 import { Frame } from "./Frame";
+import { landingJsonLd } from "@/lib/jsonld";
 import { listVisuals, readStatus, slug } from "@/lib/store";
 
 // Public page: rebuilt at most every ten minutes, so a busy day costs nothing to the frame's storage
@@ -18,6 +19,7 @@ export default async function Home() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(landingJsonLd()) }} />
       <Nav />
       <main className="wrap">
         <section className="hero">

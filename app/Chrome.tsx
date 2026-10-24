@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "./Logo";
+import { LEGAL } from "@/lib/site";
 
 /** Sticky header, as on leswww.com: the wordmark on the left, mono labels and one lemon block on the right. */
 export function Nav({ control = false }: { control?: boolean }) {
@@ -38,6 +39,9 @@ export function Footer() {
           <a href="https://www.320kbps.club">320kbps.club</a>
           <a href="https://github.com/kxrz/leswww-liner">GitHub</a>
           <a href="https://github.com/kxrz/leswww-liner/blob/main/LICENSE">MIT License</a>
+          {LEGAL.map((l) => (
+            <a key={l.href} href={l.href}>{l.label}</a>
+          ))}
         </nav>
         <p className="fine">
           © LesWWW {new Date().getFullYear()} · Florent Bertiaux, Lille. Music curated on{" "}

@@ -6,8 +6,8 @@ const sans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["300", "400", "600"], 
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400"], variable: "--mono" });
 
 export const metadata: Metadata = {
-  title: "Liner · 320kbps.club",
-  description: "An e-ink frame that hangs one track at a time from 320kbps.club.",
+  title: "Liner · LesWWW",
+  description: "Liner, a LesWWW project: an e-ink frame that hangs one track at a time from 320kbps.club.",
   robots: { index: false, follow: false },
   appleWebApp: { capable: true, title: "Liner", statusBarStyle: "default" },
 };

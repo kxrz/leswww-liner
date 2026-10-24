@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install or update Liner's services. Run on the Pi from ~/tekpi-eink/pi.
+# Install or update Liner's services. Run on the Pi from ~/liner/pi.
 set -e
 cd "$(dirname "$0")"
 sudo apt-get install -y -qq python3-requests python3-pil >/dev/null

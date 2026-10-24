@@ -14,7 +14,7 @@ function Header() {
   return (
     <header>
       <h1>Liner</h1>
-      <a href="https://www.320kbps.club" className="mono">by 320kbps.club</a>
+      <a href="https://leswww.com" className="mono">a LesWWW project</a>
     </header>
   );
 }
@@ -26,7 +26,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
     return (
       <main>
         <Header />
-        <p className="lede">An e-ink frame that hangs one track at a time, like a work in a museum.</p>
+        <p className="lede">An e-ink frame that hangs one track from 320kbps.club at a time, like a work in a museum.</p>
         <form action={login} className="login">
           <input type="password" name="password" placeholder="Password" autoFocus required />
           <button type="submit">Enter</button>
@@ -78,16 +78,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         <p>
           <strong>Liner</strong> hangs one track from <a href="https://www.320kbps.club">320kbps.club</a> on the wall at a
           time, twice a day: the cover and its liner notes on a museum-style label, laid over a map of where the artist
-          comes from.
+          comes from. A <a href="https://leswww.com">LesWWW</a> project.
         </p>
         <dl>
           <dt>Computer</dt><dd>Raspberry Pi Zero 2 W</dd>
           <dt>Screen</dt><dd>Pimoroni Inky Impression 7.3&quot; Spectra 6 · 800 × 480 · six inks</dd>
           <dt>Refresh</dt><dd>7:00 and 19:00, or from this page</dd>
+          <dt>Music</dt><dd>320kbps.club</dd>
           <dt>Maps</dt><dd>Natural Earth · MusicBrainz · OpenStreetMap</dd>
         </dl>
         <p className="mono">
-          <a href="https://github.com/kxrz/tekpi-eink">Source on GitHub</a>
+          <a href="https://github.com/kxrz/leswww-liner">Source on GitHub</a> · <a href="https://leswww.com">leswww.com</a>
         </p>
       </section>
     </main>

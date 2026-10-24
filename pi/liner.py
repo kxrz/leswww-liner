@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Liner, by 320kbps.club: one track at a time on an e-ink frame, hung like a work in a museum.
+"""Liner, a LesWWW project: one track from 320kbps.club at a time on an e-ink frame, hung like a work in a museum.
 
 The cover and its liner notes sit on a museum label, laid over a map of where the artist comes from.
 Pimoroni Inky Impression 7.3" (Spectra 6), 800x480.

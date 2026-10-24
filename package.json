@@ -1,7 +1,7 @@
 {
   "name": "liner",
   "version": "1.0.0",
-  "description": "Liner by 320kbps.club: an e-ink frame that hangs one track at a time",
+  "description": "Liner, a LesWWW project: an e-ink frame that hangs one track at a time from 320kbps.club",
   "private": true,
   "scripts": {
     "dev": "next dev",

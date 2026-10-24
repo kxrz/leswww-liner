@@ -11,7 +11,7 @@ const COUNTRIES = countries as unknown as Record<string, Country>;
 const BY_NAME = new Map(
   Object.values(COUNTRIES).flatMap((c) => c.names.map((n) => [n.toLowerCase(), c] as const)),
 );
-const UA = { "User-Agent": "Liner by 320kbps.club (https://github.com/kxrz/tekpi-eink)", "Accept-Language": "en" };
+const UA = { "User-Agent": "Liner by LesWWW (https://github.com/kxrz/leswww-liner)", "Accept-Language": "en" };
 
 // The panel's pure inks: the frame maps them back exactly, without dithering.
 export const INKS = {

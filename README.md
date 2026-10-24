@@ -1,6 +1,7 @@
 # Liner
 
 **An e-ink frame that hangs one track at a time from [320kbps.club](https://www.320kbps.club), like a work in a museum.**
+A [LesWWW](https://leswww.com) project.
 
 The cover and its liner notes sit on a museum label, laid over a map of where the artist comes from.
 A new track every morning and evening, and a small web page to change it from your phone.
@@ -81,14 +82,14 @@ docs/                 sample pictures
 ## Set up the frame
 
 ```sh
-git clone https://github.com/kxrz/tekpi-eink.git ~/tekpi-eink
-cd ~/tekpi-eink/pi
+git clone https://github.com/kxrz/leswww-liner.git ~/liner
+cd ~/liner/pi
 cp liner.env.example liner.env   # then fill in LINER_TOKEN
 ./install.sh
 ```
 
 Enable SPI and I2C first (`sudo raspi-config` › Interface Options). Update with
-`cd ~/tekpi-eink && git pull && pi/install.sh`.
+`cd ~/liner && git pull && pi/install.sh`.
 
 | | |
 |---|---|
@@ -102,7 +103,7 @@ newest track.
 
 ## Deploy the web page
 
-The Vercel project is linked to this repository: every push to `main` deploys. Connect a Blob store, then set:
+The Vercel project (`leswww-liner`) is linked to this repository: every push to `main` deploys. Connect a Blob store, then set:
 
 | Variable | |
 |---|---|
@@ -145,6 +146,8 @@ The mat hides part of the panel. Measured with a test grid: x 52 → 748, y 35 �
 the only value to change.
 
 ## Credits
+
+Liner is designed and built by [LesWWW](https://leswww.com), the studio behind [320kbps.club](https://www.320kbps.club).
 
 - Music: [320kbps.club](https://www.320kbps.club) feed and album pages
 - Outlines: [Natural Earth](https://www.naturalearthdata.com) 1:50m, public domain

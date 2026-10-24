@@ -6,7 +6,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 User=pi
-WorkingDirectory=/home/pi/tekpi-eink/pi
-EnvironmentFile=/home/pi/tekpi-eink/pi/liner.env
-ExecStart=/usr/bin/python3 /home/pi/tekpi-eink/pi/liner.py --sync
+WorkingDirectory=/home/pi/liner/pi
+EnvironmentFile=/home/pi/liner/pi/liner.env
+ExecStart=/usr/bin/python3 /home/pi/liner/pi/liner.py --sync
 TimeoutStartSec=300

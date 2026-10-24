@@ -19,6 +19,15 @@ export const INKS = {
 };
 export type Ink = keyof typeof INKS;
 
+// What the panel actually shows: the inky driver's saturated palette blended 50/50 with the pure inks
+// (SEEN in pi/liner.py). Used for the HD wallpaper, which should look like the frame, only sharper.
+const SEEN: Record<Ink, string> = {
+  black: "#000000", white: "#d0d1d2", yellow: "#e7de23", red: "#cd2425", blue: "#1e1dae", green: "#1dad23",
+};
+
+/** `s` scales every stroke and dot for a larger canvas; above 1 the map is antialiased and drawn in ink tones. */
+export type MapStyle = { s: number; tone: "ink" | "seen" };
+
 function countryLabel(c: Country): string {
   return c.names.reduce((a, b) => (b.length < a.length ? b : a));
 }
@@ -122,6 +131,7 @@ function mainland(rings: Ring[], point?: Pt): Ring[] {
 export async function renderMap(
   q: { artist?: string; hint?: string },
   w: number, h: number, box: Box, bg: Ink, ink: Ink,
+  style: MapStyle = { s: 1, tone: "ink" },
 ) {
   const origin = q.artist ? await artistOrigin(q.artist, q.hint) : q.hint;
   const place = origin ? await locate(origin) : null;
@@ -154,14 +164,17 @@ export async function renderMap(
     });
 
   const city = place.point ? [px(place.point[0]), py(place.point[1])] : null;
-  const fg = INKS[ink];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" shape-rendering="crispEdges">
-<defs><pattern id="t" width="6" height="6" patternUnits="userSpaceOnUse"><rect x="2" y="2" width="2" height="2" fill="${fg}"/></pattern></defs>
-<rect width="${w}" height="${h}" fill="${INKS[bg]}"/>
-<path d="${grid}" stroke="${fg}" stroke-width="1" stroke-dasharray="2 5" fill="none"/>
-<path d="${path(neighbours)}" stroke="${fg}" stroke-width="1" fill="none"/>
-<path d="${path(place.country.rings)}" fill="url(#t)" stroke="${fg}" stroke-width="3" stroke-linejoin="round"/>
-${city ? `<circle cx="${city[0]}" cy="${city[1]}" r="9" fill="${INKS[bg]}" stroke="${fg}" stroke-width="3"/><circle cx="${city[0]}" cy="${city[1]}" r="3" fill="${fg}"/>` : ""}
+  const colours = style.tone === "seen" ? SEEN : INKS;
+  const fg = colours[ink];
+  const back = colours[bg];
+  const u = style.s; // one panel pixel, in canvas pixels
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" shape-rendering="${u > 1 ? "geometricPrecision" : "crispEdges"}">
+<defs><pattern id="t" width="${6 * u}" height="${6 * u}" patternUnits="userSpaceOnUse"><rect x="${2 * u}" y="${2 * u}" width="${2 * u}" height="${2 * u}" fill="${fg}"/></pattern></defs>
+<rect width="${w}" height="${h}" fill="${back}"/>
+<path d="${grid}" stroke="${fg}" stroke-width="${u}" stroke-dasharray="${2 * u} ${5 * u}" fill="none"/>
+<path d="${path(neighbours)}" stroke="${fg}" stroke-width="${u}" fill="none"/>
+<path d="${path(place.country.rings)}" fill="url(#t)" stroke="${fg}" stroke-width="${3 * u}" stroke-linejoin="round"/>
+${city ? `<circle cx="${city[0]}" cy="${city[1]}" r="${9 * u}" fill="${back}" stroke="${fg}" stroke-width="${3 * u}"/><circle cx="${city[0]}" cy="${city[1]}" r="${3 * u}" fill="${fg}"/>` : ""}
 </svg>`;
   return { png: await sharp(Buffer.from(svg)).png().toBuffer(), label: place.label };
 }

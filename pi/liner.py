@@ -135,10 +135,21 @@ def fit(draw, text, font, width):
     return text
 
 
-def cover(url, size):
-    """The cover, dithered (Floyd-Steinberg) onto the panel's six inks."""
-    img = Image.open(BytesIO(requests.get(url, timeout=20).content)).convert("RGB")
-    img = ImageOps.fit(img, (size, size), Image.LANCZOS)
+# The 4K wallpaper: the 800×480 layout scaled ×4.5 (3600×2160), centred on a 16:9 canvas
+HD_SIZE, HD_SCALE = (3840, 2160), 4.5
+HD_X = (HD_SIZE[0] - round(W * HD_SCALE)) // 2
+
+
+def fetch_cover(url):
+    return Image.open(BytesIO(requests.get(url, timeout=20).content)).convert("RGB") if url else None
+
+
+def dither(raw, size, bw=False):
+    """The cover, dithered (Floyd-Steinberg) onto the panel's six inks, or onto black and white."""
+    img = ImageOps.fit(raw, (size, size), Image.LANCZOS)
+    if bw:
+        bits = ImageOps.autocontrast(img.convert("L"), cutoff=1).convert("1")
+        return Image.frombytes("P", bits.size, bytes(WHITE if p else BLACK for p in bits.getdata()))
     img = ImageEnhance.Color(img).enhance(1.2)  # colour e-ink is dull: compensate a little
     pal = Image.new("P", (1, 1))
     pal.putpalette(SEEN)
@@ -154,32 +165,49 @@ def accent(img):
     return None
 
 
-def origin_map(item, box, bg, ink):
-    """The map, drawn by the web page over the whole visible area, mapped back to the palette without dithering."""
+def origin_map(item, box, bg, ink, hd=False):
+    """The map, drawn by the web page: panel-sized in pure inks, or 4K and smooth in the panel's tones."""
     if not URL:
         return None, item["country"]
-    w, h = VISIBLE[2] - VISIBLE[0], VISIBLE[3] - VISIBLE[1]
+    w, h = HD_SIZE if hd else (VISIBLE[2] - VISIBLE[0], VISIBLE[3] - VISIBLE[1])
+    style = {"s": HD_SCALE, "tone": "seen"} if hd else {}
     try:  # the server works out where the artist comes from; the feed's origin helps it pick between namesakes
-        r = requests.get(f"{URL}/api/map", timeout=60, params={
-            "artist": item["artist"], "hint": item["country"], "v": 3, "w": w, "h": h,
+        r = requests.get(f"{URL}/api/map", timeout=90, params={
+            "artist": item["artist"], "hint": item["country"], "v": 3, "w": w, "h": h, **style,
             "box": ",".join(str(v) for v in box), "bg": INK_NAMES[bg], "ink": INK_NAMES[ink]})
         r.raise_for_status()
     except requests.RequestException as e:
         print(f"No map: {e}")
         return None, item["country"]
-    pal = Image.new("P", (1, 1))
-    pal.putpalette(PALETTE)
-    img = Image.open(BytesIO(r.content)).convert("RGB").quantize(palette=pal, dither=Image.Dither.NONE)
+    img = Image.open(BytesIO(r.content)).convert("RGB")
+    if not hd:
+        pal = Image.new("P", (1, 1))
+        pal.putpalette(PALETTE)
+        img = img.quantize(palette=pal, dither=Image.Dither.NONE)
     return img, unquote(r.headers.get("X-Place", ""))
 
 
-def render(item, now):
-    art = cover(item["cover"], 220) if item["cover"] else None
-    bg, ink = DUOTONES[accent(art) if art else None]
-    img = Image.new("P", (W, H), bg)
-    img.putpalette(PALETTE)
+def render(item, now, mode="eink", raw=None):
+    """Draw the picture: "eink" for the colour panel, "bw" for a black and white panel, "hd" for the 4K wallpaper.
+
+    The layout is the same in all three; coordinates are in panel pixels and scaled for the wallpaper.
+    """
+    hd = mode == "hd"
+    k, ox = (HD_SCALE, HD_X) if hd else (1, 0)
+    z = lambda v: round(v * k)  # panel pixels → canvas pixels
+    X = lambda x: ox + z(x)
+    colour_art = dither(raw, 220) if raw else None
+    bg, ink = (WHITE, BLACK) if mode == "bw" else DUOTONES[accent(colour_art) if colour_art else None]
+    tone = (lambda i: tuple(SEEN[3 * i:3 * i + 3])) if hd else (lambda i: i)
+
+    if hd:
+        img = Image.new("RGB", HD_SIZE, tone(bg))
+    else:
+        img = Image.new("P", (W, H), bg)
+        img.putpalette(PALETTE)
     d = ImageDraw.Draw(img)
-    d.fontmode = "1"  # no antialiasing: crisp pixels, like an e-reader
+    if not hd:
+        d.fontmode = "1"  # no antialiasing: crisp pixels, like an e-reader
 
     # Museum label: a white card on the left, with a hard drop shadow
     cw, pad = 248, 14  # 248 - 2×14 = 220, the width of the cover
@@ -188,38 +216,68 @@ def render(item, now):
 
     # The map first: the country is fitted right of the label, its neighbours run underneath
     box = (x1 + 30 - VISIBLE[0], 24, VISIBLE[2] - VISIBLE[0] - 24, VISIBLE[3] - VISIBLE[1] - 24)
-    picture, place = origin_map(item, box, bg, ink)
+    if hd:  # the wallpaper's map covers the whole canvas
+        box = (X(VISIBLE[0] + box[0]), z(VISIBLE[1] + box[1]), X(VISIBLE[0] + box[2]), z(VISIBLE[1] + box[3]))
+    picture, place = origin_map(item, box, bg, ink, hd)
     item["place"] = place
     if picture:
-        img.paste(picture, VISIBLE[:2])
+        img.paste(picture, (0, 0) if hd else VISIBLE[:2])
 
-    # The label's text, measured before drawing the card
-    lines = [(item["artist"], sans(21, 600), BLACK, 25)]  # (text, font, colour, line height)
-    title = wrap(d, item["title"], sans(18, 300), inner)
+    # The label's text, measured before drawing the card (line heights in panel pixels)
+    lines = [(item["artist"], sans(z(21), 600), BLACK, 25)]  # (text, font, colour, line height)
+    title = wrap(d, item["title"], sans(z(18), 300), z(inner))
     if len(title) > 2:
         title = [title[0], " ".join(title[1:])]  # fit() trims the end
-    lines += [(line, sans(18, 300), BLACK, 22) for line in title]
+    lines += [(line, sans(z(18), 300), BLACK, 22) for line in title]
     lines.append(("", None, None, 8))
     work = ", ".join(x for x in (item["album"] or item["kind"], item["year"]) if x)
     for text in (" · ".join(x for x in (work, item.get("style", "")) if x), item["label"], place):
         if text:
-            lines.append((text, mono(12), BLACK, 16))
+            lines.append((text, mono(z(12)), BLACK, 16))
     lines.append(("", None, None, 10))
-    lines.append((f"320kbps.club · {now.day:02d}.{now.month:02d}.{now.year}", mono(11), RED, 14))
+    stamp = f"320kbps.club · {now.day:02d}.{now.month:02d}.{now.year}"
+    lines.append((stamp, mono(z(11)), BLACK if mode == "bw" else RED, 14))
 
     text_h = sum(lh for *_, lh in lines)
     card_h = pad + inner + 14 + text_h + pad
     y0 = max(T, (T + B - card_h) // 2)
-    d.rectangle((x0 + 8, y0 + 8, x1 + 8, y0 + card_h + 8), fill=BLACK if bg != BLACK else WHITE)
-    d.rectangle((x0, y0, x1, y0 + card_h), fill=WHITE, outline=BLACK, width=1)
-    if art:
-        img.paste(art, (x0 + pad, y0 + pad))
+    d.rectangle((X(x0 + 8), z(y0 + 8), X(x1 + 8), z(y0 + card_h + 8)), fill=tone(BLACK if bg != BLACK else WHITE))
+    d.rectangle((X(x0), z(y0), X(x1), z(y0 + card_h)), fill=tone(WHITE), outline=tone(BLACK), width=max(1, z(1)))
+    if raw:
+        if mode == "eink":
+            art = colour_art
+        elif mode == "bw":
+            art = dither(raw, 220, bw=True)
+        else:  # the wallpaper keeps the cover as it is, full definition
+            art = ImageOps.fit(raw, (z(inner), z(inner)), Image.LANCZOS)
+        img.paste(art, (X(x0 + pad), z(y0 + pad)))
     y = y0 + pad + inner + 14
     for text, font, colour, lh in lines:
         if font:
-            d.text((x0 + pad, y), fit(d, text, font, inner), font=font, fill=colour)
+            d.text((X(x0 + pad), z(y)), fit(d, text, font, z(inner)), font=font, fill=tone(colour))
         y += lh
     return img
+
+
+def as_seen(img):
+    """A panel image in the colours the ink really shows."""
+    rgb = img.copy()
+    rgb.putpalette(SEEN)
+    return rgb.convert("RGB")
+
+
+def encode(img, kind):
+    """PNG for the panel pictures (doubled, crisp pixels); JPEG for the wallpaper, small enough to upload."""
+    out = BytesIO()
+    if kind == "hd":
+        for quality in (90, 82, 74):  # Vercel functions take bodies up to 4.5 MB
+            out = BytesIO()
+            img.save(out, "JPEG", quality=quality, subsampling=0)
+            if out.tell() < 4_300_000:
+                break
+    else:
+        as_seen(img).resize((W * 2, H * 2), Image.NEAREST).save(out, "PNG", optimize=True)
+    return out.getvalue()
 
 
 # --- Display and sync ------------------------------------------------------
@@ -233,11 +291,13 @@ def show(guid=None, command=0):
     state = load_state()
     seen = state.get("seen", [])
     item = pick_item(seen, guid)
-    img = render(item, datetime.now())
-    preview = img.copy()
-    preview.putpalette(SEEN)  # close to what the ink really looks like
-    preview.convert("RGB").save(HERE / "preview.png")
+    now = datetime.now()
+    raw = fetch_cover(item["cover"])
+    img = render(item, now, "eink", raw)
+    as_seen(img).save(HERE / "preview.png")
     if "--preview" in sys.argv:
+        as_seen(render(item, now, "bw", raw)).save(HERE / "preview-bw.png")
+        render(item, now, "hd", raw).save(HERE / "preview-4k.jpg", quality=90)
         return
     from inky.auto import auto
     display = auto()
@@ -248,20 +308,26 @@ def show(guid=None, command=0):
     STATE.write_text(json.dumps(state))
     print(f"On the wall: {item['artist']} — {item['title']} ({item['place'] or 'origin unknown'})")
     if URL:
-        report(item, preview, command)
+        report(item, img, raw, now, command)
 
 
-def report(item, preview, command):
-    """Upload the picture (doubled, crisp pixels, for downloading) then tell the page what is on the wall."""
+def upload(item, kind, img):
+    r = requests.put(f"{URL}/api/pi/visual", params={"guid": item["guid"], "kind": kind}, timeout=120,
+                     headers={**AUTH, "Content-Type": "image/jpeg" if kind == "hd" else "image/png"},
+                     data=encode(img, kind))
+    r.raise_for_status()
+    return r.json()["url"]
+
+
+def report(item, img, raw, now, command):
+    """Upload what is on the wall and tell the page; then make and upload the black and white and 4K versions."""
     try:
-        png = BytesIO()
-        preview.convert("RGB").resize((W * 2, H * 2), Image.NEAREST).save(png, "PNG", optimize=True)
-        r = requests.put(f"{URL}/api/pi/visual", headers={**AUTH, "Content-Type": "image/png"},
-                         params={"guid": item["guid"]}, data=png.getvalue(), timeout=60)
-        r.raise_for_status()
+        visual = upload(item, "eink", img)
         requests.post(f"{URL}/api/pi", headers=AUTH, timeout=20, json={
             "guid": item["guid"], "title": item["title"], "artist": item["artist"], "command": command,
-            "place": item["place"], "visual": r.json()["url"]}).raise_for_status()
+            "place": item["place"], "visual": visual}).raise_for_status()
+        for kind in ("bw", "hd"):  # after the report, so the page is not kept waiting
+            upload(item, kind, render(item, now, kind, raw))
     except requests.RequestException as e:
         print(f"Report not sent: {e}")
 

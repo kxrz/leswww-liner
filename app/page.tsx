@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Footer, Nav } from "./Chrome";
+import { Compare } from "./Compare";
 import { Frame } from "./Frame";
 import { landingJsonLd } from "@/lib/jsonld";
 import { listVisuals, readStatus, slug } from "@/lib/store";
@@ -14,7 +15,19 @@ const SAMPLES = ["balthazar", "bangalter", "magugu", "agnes-obel", "nils-frahm",
 export default async function Home() {
   const [status, visuals] = await Promise.all([readStatus(), listVisuals()]);
   const current = status ? visuals.get(slug(status.guid)) : undefined;
-  const recent = [...visuals.values()].sort((a, b) => (b.uploadedAt ?? "").localeCompare(a.uploadedAt ?? "")).map((v) => v.url);
+  const recent = [...visuals.values()]
+    .flatMap((p) => (p.eink ? [p.eink] : []))
+    .sort((a, b) => (b.uploadedAt ?? "").localeCompare(a.uploadedAt ?? ""))
+    .map((v) => v.url);
+  // The before/after needs all three pictures of one track; until the frame has made them, show the sample
+  const full = current?.eink && current.hd && current.bw ? current : null;
+  const art = {
+    eink: full?.eink?.url ?? SAMPLES[1],
+    hd: full?.hd?.url ?? "/samples/bangalter-4k.jpg",
+    bw: full?.bw?.url ?? "/samples/bangalter-bw.png",
+    hdDownload: full?.hd?.downloadUrl ?? "/samples/bangalter-4k.jpg",
+    alt: full && status ? `${status.artist} — ${status.title}` : "Thomas Bangalter — Mythologies: XIX. Circonvolutions",
+  };
   const strip = [...recent, ...SAMPLES].slice(0, 10);
 
   return (
@@ -41,7 +54,7 @@ export default async function Home() {
         </section>
 
         <section className="showcase">
-          <Frame src={current?.url ?? SAMPLES[1]} alt={status ? `${status.artist} — ${status.title}` : "Thomas Bangalter on Liner"} />
+          <Frame src={current?.eink?.url ?? SAMPLES[1]} alt={status ? `${status.artist} — ${status.title}` : "Thomas Bangalter on Liner"} />
           {status && (
             <p className="label center">
               On the wall now · <strong>{status.artist}</strong> — {status.title}
@@ -78,6 +91,32 @@ export default async function Home() {
               <h3>Six inks, no greys</h3>
               <p>Black, white, yellow, red, blue, green. The cover is dithered, the text is never smoothed, and the map takes the cover&apos;s colour.</p>
             </article>
+          </div>
+        </section>
+
+        <section className="block">
+          <h2>Prepared for e-ink</h2>
+          <p className="block-lede">
+            Every track is drawn twice. Once in full definition, then once for the panel: six inks, a dithered cover,
+            text without smoothing, a map that snaps to the pixel. Drag to compare.
+          </p>
+          <Compare hd={art.hd} eink={art.eink} alt={art.alt} />
+          <div className="duo">
+            <div>
+              <Frame src={art.bw} alt={`${art.alt}, black and white`} />
+            </div>
+            <div className="duo-text">
+              <span className="tag">Mono panels too</span>
+              <h3>In black and white</h3>
+              <p>
+                The same picture in two inks, for black and white e-ink panels: the cover becomes a 1-bit dither, the map
+                a line drawing.
+              </p>
+              <span className="tag tag-live">Wallpaper</span>
+              <h3>As a 4K wallpaper</h3>
+              <p>The HD drawing, 3840 × 2160, in the tones of the panel. A new one every time the frame changes.</p>
+              <a href={art.hdDownload} className="btn">Download the 4K wallpaper ↓</a>
+            </div>
           </div>
         </section>
 

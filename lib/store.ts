@@ -8,8 +8,20 @@ export type Status = {
   at: string; guid: string; title: string; artist: string; command: number; place?: string; visual?: string;
 };
 
-/** A picture as drawn on the frame, downloadable from the page. */
+/** A picture made for one track, downloadable from the page. */
 export type Visual = { url: string; downloadUrl: string; uploadedAt?: string };
+
+/**
+ * Each redraw yields three pictures: what the colour panel shows, the same in black and white for a mono panel,
+ * and a 4K wallpaper with the same layout, drawn smooth.
+ */
+export const KINDS = {
+  eink: { suffix: ".png", type: "image/png" },
+  bw: { suffix: "-bw.png", type: "image/png" },
+  hd: { suffix: "-4k.jpg", type: "image/jpeg" },
+} as const;
+export type Kind = keyof typeof KINDS;
+export type Pictures = Partial<Record<Kind, Visual>>;
 
 const COMMAND = "liner/command.json";
 const STATUS = "liner/status.json";
@@ -44,31 +56,39 @@ export function slug(guid: string): string {
   return new URL(guid).pathname.split("/").filter(Boolean).join("-").replace(/[^a-z0-9-]/gi, "");
 }
 
-export async function saveVisual(guid: string, png: ArrayBuffer): Promise<Visual> {
-  const blob = await put(`${VISUALS}${slug(guid)}.png`, png, {
+export async function saveVisual(guid: string, kind: Kind, data: ArrayBuffer): Promise<Visual> {
+  const blob = await put(`${VISUALS}${slug(guid)}${KINDS[kind].suffix}`, data, {
     access: "public",
     allowOverwrite: true,
     addRandomSuffix: false,
-    contentType: "image/png",
+    contentType: KINDS[kind].type,
     cacheControlMaxAge: 60,
   });
   return { url: blob.url, downloadUrl: blob.downloadUrl };
 }
 
-/** Pictures already drawn, by slug. */
-export async function listVisuals(): Promise<Map<string, Visual>> {
-  const visuals = new Map<string, Visual>();
+/** Pictures already made, by track slug. */
+export async function listVisuals(): Promise<Map<string, Pictures>> {
+  const pictures = new Map<string, Pictures>();
+  const kinds = (Object.keys(KINDS) as Kind[]).sort((a, b) => KINDS[b].suffix.length - KINDS[a].suffix.length);
   try {
     let cursor: string | undefined;
     do {
       const page = await list({ prefix: VISUALS, cursor });
       for (const b of page.blobs) {
-        visuals.set(b.pathname.slice(VISUALS.length, -4), { url: b.url, downloadUrl: b.downloadUrl, uploadedAt: new Date(b.uploadedAt).toISOString() });
+        const name = b.pathname.slice(VISUALS.length);
+        const kind = kinds.find((k) => name.endsWith(KINDS[k].suffix));
+        if (!kind) continue;
+        const key = name.slice(0, -KINDS[kind].suffix.length);
+        pictures.set(key, {
+          ...pictures.get(key),
+          [kind]: { url: b.url, downloadUrl: b.downloadUrl, uploadedAt: new Date(b.uploadedAt).toISOString() },
+        });
       }
       cursor = page.cursor;
     } while (cursor);
   } catch {
     // no Blob store when running locally: the page renders without pictures
   }
-  return visuals;
+  return pictures;
 }

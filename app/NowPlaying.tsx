@@ -4,14 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Frame } from "./Frame";
 import { POLL_SECONDS, REDRAW_SECONDS } from "@/lib/frame";
-import type { Status, Visual } from "@/lib/store";
+import type { Pictures, Status } from "@/lib/store";
 
-type Props = { status: Status | null; visual?: Visual; pending: number | null };
+type Props = { status: Status | null; pictures?: Pictures; pending: number | null };
 
 const when = new Intl.DateTimeFormat("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit" });
 
 /** The frame as it is now, and the progress of a request on its way to it. */
-export function NowPlaying({ status, visual, pending }: Props) {
+export function NowPlaying({ status, pictures = {}, pending }: Props) {
   const router = useRouter();
   const [elapsed, setElapsed] = useState(0);
   const [done, setDone] = useState(false);
@@ -40,7 +40,7 @@ export function NowPlaying({ status, visual, pending }: Props) {
   return (
     <section className="now">
       <Frame
-        src={visual && status ? `${visual.url}?v=${status.at}` : undefined}
+        src={pictures.eink && status ? `${pictures.eink.url}?v=${status.at}` : undefined}
         alt={status ? `${status.artist} — ${status.title}` : "The frame"}
         state={pending ? (done ? "flash" : "waiting") : undefined}
       />
@@ -63,7 +63,14 @@ export function NowPlaying({ status, visual, pending }: Props) {
               {[status.place, `since ${when.format(new Date(status.at))}`].filter(Boolean).join(" · ")}
             </p>
           </div>
-          {visual && <a href={visual.downloadUrl} className="btn secondary small">PNG ↓</a>}
+        </div>
+      )}
+
+      {status && (pictures.eink || pictures.bw || pictures.hd) && (
+        <div className="downloads">
+          {pictures.eink && <a href={pictures.eink.downloadUrl} className="btn secondary small">E-ink PNG ↓</a>}
+          {pictures.bw && <a href={pictures.bw.downloadUrl} className="btn secondary small">Black &amp; white ↓</a>}
+          {pictures.hd && <a href={pictures.hd.downloadUrl} className="btn small">4K wallpaper ↓</a>}
         </div>
       )}
     </section>

@@ -45,7 +45,7 @@ export default async function Control({ searchParams }: { searchParams: Promise<
     <>
       <Nav control />
       <main className="wrap narrow">
-        <NowPlaying status={status} visual={status ? visuals.get(slug(status.guid)) : undefined} pending={pending} />
+        <NowPlaying status={status} pictures={status ? visuals.get(slug(status.guid)) : undefined} pending={pending} />
 
         <form action={send} className="actions">
           <button name="action" value="next" className="btn" disabled={!!pending}>Next track →</button>
@@ -55,7 +55,7 @@ export default async function Control({ searchParams }: { searchParams: Promise<
         <h2 className="list-title">Pick a track</h2>
         <ul className="tracks">
           {items.map((item) => {
-            const visual = visuals.get(slug(item.guid));
+            const pics = visuals.get(slug(item.guid)) ?? {};
             return (
               <li key={item.guid} className={item.guid === status?.guid ? "current" : undefined}>
                 <form action={send}>
@@ -68,7 +68,8 @@ export default async function Control({ searchParams }: { searchParams: Promise<
                     </span>
                   </button>
                 </form>
-                {visual && <a href={visual.downloadUrl} className="tag download" aria-label={`Download the picture for ${item.title}`}>PNG</a>}
+                {pics.eink && <a href={pics.eink.downloadUrl} className="tag download" aria-label={`Download the e-ink picture for ${item.title}`}>PNG</a>}
+                {pics.hd && <a href={pics.hd.downloadUrl} className="tag download" aria-label={`Download the 4K wallpaper for ${item.title}`}>4K</a>}
               </li>
             );
           })}

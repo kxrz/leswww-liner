@@ -240,6 +240,7 @@ def render(item, now, mode="eink", raw=None):
         box = (X(VISIBLE[0] + box[0]), z(VISIBLE[1] + box[1]), X(VISIBLE[0] + box[2]), z(VISIBLE[1] + box[3]))
     picture, place = origin_map(item, box, bg, ink, hd)
     item["place"] = place
+    item["mapped"] = picture is not None
     if picture:
         img.paste(picture, (0, 0) if hd else VISIBLE[:2])
 
@@ -308,12 +309,27 @@ def load_state():
 
 
 def show(guid=None, command=0):
+    """Draw a track and hang it. A track whose origin cannot be mapped is never shown: an automatic pick moves on to
+    the next one; a track asked for by name is refused and the frame keeps what it shows."""
     state = load_state()
     seen = state.get("seen", [])
-    item = pick_item(seen, guid, state.get("feed", FEED))
     now = datetime.now()
-    raw = fetch_cover(item["cover"])
-    img = render(item, now, "eink", raw)
+    for _ in range(1 if guid else 10):
+        item = pick_item(seen, guid, state.get("feed", FEED))
+        raw = fetch_cover(item["cover"])
+        img = render(item, now, "eink", raw)
+        if item["mapped"] or "--preview" in sys.argv:
+            break
+        print(f"Refused, no map: {item['artist']} — {item['title']}")
+        seen = [g for g in seen if g != item["guid"]] + [item["guid"]]  # not picked again
+    if not item["mapped"] and "--preview" not in sys.argv:
+        state["seen"] = seen
+        state["command"] = max(command, state.get("command", 0))
+        STATE.write_text(json.dumps(state))
+        if URL and command and state.get("current"):  # let the page know, or it would wait forever
+            requests.post(f"{URL}/api/pi", headers=AUTH, timeout=20,
+                          json={**state["current"], "command": command, "refused": f"{item['artist']} — {item['title']}"})
+        return
     as_seen(img).save(HERE / "preview.png")
     if "--preview" in sys.argv:
         as_seen(render(item, now, "bw", raw)).save(HERE / "preview-bw.png")
@@ -343,9 +359,12 @@ def report(item, img, raw, now, command):
     """Upload what is on the wall and tell the page; then make and upload the black and white and 4K versions."""
     try:
         visual = upload(item, "eink", img)
-        requests.post(f"{URL}/api/pi", headers=AUTH, timeout=20, json={
-            "guid": item["guid"], "title": item["title"], "artist": item["artist"], "command": command,
-            "place": item["place"], "visual": visual}).raise_for_status()
+        current = {"guid": item["guid"], "title": item["title"], "artist": item["artist"],
+                   "place": item["place"], "visual": visual}
+        requests.post(f"{URL}/api/pi", headers=AUTH, timeout=20, json={**current, "command": command}).raise_for_status()
+        state = load_state()
+        state["current"] = current
+        STATE.write_text(json.dumps(state))
         for kind in ("bw", "hd"):  # after the report, so the page is not kept waiting
             upload(item, kind, render(item, now, kind, raw))
     except requests.RequestException as e:
@@ -401,7 +420,11 @@ def seed(count):
             item = pick_item([], guid, load_state().get("feed", FEED))
             raw = fetch_cover(item["cover"])
             now = datetime.now()
-            pictures = {kind: render(item, now, kind, raw) for kind in ("eink", "bw", "hd")}
+            first = render(item, now, "eink", raw)
+            if not item["mapped"]:
+                print(f"Skipped, no map: {item['artist']} — {item['title']}")
+                continue
+            pictures = {"eink": first, **{kind: render(item, now, kind, raw) for kind in ("bw", "hd")}}
             as_seen(pictures["eink"]).save(out / f"{guid.rstrip('/').split('/')[-1]}.png")
             if URL:
                 for kind, img in pictures.items():

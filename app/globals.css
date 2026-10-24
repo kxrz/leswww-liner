@@ -987,6 +987,14 @@ form.actions .btn {
   50% { opacity: 0.3; }
 }
 
+.refused {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--ink);
+  background: var(--tag-bg);
+  color: var(--ink);
+}
+
 .caption {
   display: flex;
   justify-content: space-between;

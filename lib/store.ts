@@ -1,4 +1,4 @@
-import { get, list, put } from "@vercel/blob";
+import { del, get, list, put } from "@vercel/blob";
 
 /** A request from the page. `id` grows with each request; the frame remembers the last one it handled. */
 export type Command = { id: number; action: "next" | "refresh" | "show"; guid?: string };
@@ -6,6 +6,8 @@ export type Command = { id: number; action: "next" | "refresh" | "show"; guid?: 
 /** What the frame reports after each redraw. */
 export type Status = {
   at: string; guid: string; title: string; artist: string; command: number; place?: string; visual?: string;
+  /** A track asked for but not hung, because no map of its origin could be found. */
+  refused?: string;
 };
 
 /** A picture made for one track, downloadable from the page. */
@@ -61,6 +63,12 @@ export const writeSettings = (s: Settings) => write(SETTINGS, s);
 export type Hung = { slug: string; guid: string; title: string; artist: string; place?: string; at: string };
 const GALLERY = "liner/gallery.json";
 export const readGallery = async () => (await read<Hung[]>(GALLERY)) ?? [];
+
+export async function removeFromGallery(guid: string): Promise<void> {
+  const key = slug(guid);
+  await write(GALLERY, (await readGallery()).filter((h) => h.slug !== key));
+  await del(Object.values(KINDS).map((k) => `${VISUALS}${key}${k.suffix}`)).catch(() => undefined);
+}
 
 export async function addToGallery(entry: Hung): Promise<void> {
   const gallery = (await readGallery()).filter((h) => h.slug !== entry.slug);

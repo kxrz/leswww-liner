@@ -53,6 +53,12 @@ export function NowPlaying({ status, pictures = {}, pending }: Props) {
         </ol>
       ) : null}
 
+      {status?.refused && !pending && (
+        <p className="label refused">
+          Not hung: {status.refused}. Liner found no map of where the artist comes from, so the frame kept this one.
+        </p>
+      )}
+
       {status && (
         <div className="caption">
           <div>

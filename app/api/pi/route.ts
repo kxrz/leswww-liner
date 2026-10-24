@@ -20,7 +20,10 @@ export async function POST(request: Request) {
   }
   const at = new Date().toISOString();
   const place = typeof s.place === "string" ? s.place : undefined;
-  await addToGallery({ slug: slug(s.guid), guid: s.guid, title: s.title, artist: String(s.artist ?? ""), place, at });
+  const refused = typeof s.refused === "string" ? s.refused : undefined;
+  if (!refused) {
+    await addToGallery({ slug: slug(s.guid), guid: s.guid, title: s.title, artist: String(s.artist ?? ""), place, at });
+  }
   await writeStatus({
     at,
     guid: s.guid,
@@ -29,6 +32,7 @@ export async function POST(request: Request) {
     command: Number(s.command ?? 0),
     place,
     visual: typeof s.visual === "string" ? s.visual : undefined,
+    refused,
   });
   return new Response(null, { status: 204 });
 }

@@ -1,28 +1,30 @@
 # tekpi-eink
 
-Un cadre e-ink posé dans le salon, entièrement consacré à la musique : un titre de
-[320kbps.club](https://www.320kbps.club), sa pochette, son vinyle qui en sort, et la carte d'où vient l'artiste.
-Un nouveau titre matin et soir, et une petite page web pour en changer depuis le téléphone.
+Un cadre e-ink posé dans le salon, entièrement consacré à la musique : chaque titre de
+[320kbps.club](https://www.320kbps.club) y est présenté comme une œuvre, avec son cartel de musée posé sur la carte
+d'où vient l'artiste. Un nouveau titre matin et soir, et une petite page web pour en changer depuis le téléphone.
 
 ```
 ┌──────────────────────────────────────────────┐
-│ ┌──────────┐▓▓▓▓       320kbps.club          │
-│ │          │▓▓▓▓▓▓     samedi 24 octobre     │
-│ │ pochette │▓▓ ◉ ▓▓      ┌─────────┐         │
-│ │  tramée  │▓▓▓▓▓▓      │ ░ pays ░ │  ●     │
-│ │          │▓▓▓▓        └─────────┘         │
-│ └──────────┘             Belgium             │
-│ Linger On (Sand Castle Tapes version)  ▣▣▣  │
-│ Balthazar                              ▣ QR │
-│ The Sand Castle Tapes · 2021 · PIAS    ▣▣▣  │
+│ ░  ┆        ┆         ┆          ┆           │  fond uni, graticule en pointillés
+│ ┌────────────┐  ┆  ╭──────╮      ┆           │
+│ │  pochette  │    ╱ ::::::: ╲───╮            │  pays voisins au trait fin,
+│ │   tramée   │ ──┤ :::: ◎ :::: │  ┆          │  pays d'origine épais et tramé,
+│ │            │    ╲ :::::::::  ╱             │  cercle sur la ville
+│ ├────────────┤     ╰────────╯   ┆           │
+│ │ Balthazar  │  ┆        ┆         ┆          │
+│ │ Linger On  │                                │  cartel : artiste, titre,
+│ │ 2021 · PIAS│  ┆        ┆         ┆          │  album, année, label, origine
+│ └────────────┘▌                               │
 └──────────────────────────────────────────────┘
 ```
 
-- **La pochette**, tramée sur les six encres, avec une ombre portée franche.
-- **Le vinyle** qui en glisse : sillons bleu nuit, reflets, macaron teinté de la couleur dominante de la pochette.
-- **La carte de l'origine** de l'artiste : contour du pays, trame de points de la même couleur, point rouge si l'origine
-  est une ville. Pour un album, dont le flux ne donne pas l'origine, la tracklist la remplace.
-- **Le titre, l'artiste, l'album, l'année, le label**, et un QR vers la page du titre.
+- **Le fond et la carte** forment un duotone choisi d'après l'encre dominante de la pochette :
+  bleu et blanc, rouge et blanc, vert et blanc, jaune et noir, ou blanc et noir pour une pochette sans couleur franche.
+- **La carte** montre le pays de l'artiste, ses voisins et un graticule ; un cercle marque la ville quand l'origine en
+  est une. Sans origine dans le flux (les albums), l'artiste est cherché dans MusicBrainz.
+- **Le cartel**, carte blanche avec une ombre portée : la pochette tramée sur les six encres, l'artiste, le titre,
+  puis album, année, style, label et origine.
 
 ## Matériel
 
@@ -64,7 +66,7 @@ lib/
   feed.ts            lecture du flux RSS de 320kbps.club
   store.ts           command.json et status.json dans Vercel Blob
   auth.ts            mot de passe de la page, jeton du Pi
-  map.ts             carte d'origine : contour, trame, point de la ville → PNG
+  map.ts             carte d'origine en duotone : graticule, voisins, pays, ville → PNG
   countries.json     contours des pays (Natural Earth 1:50m, simplifiés)
 pi/
   cadre.py           tout le cadre : données, mise en page, affichage, synchro
@@ -119,8 +121,8 @@ En local : `npm install && npm run dev` (avec un `.env.local`, voir `.env.exampl
 - **Seule la pochette est tramée** (Floyd-Steinberg), vers les couleurs *réellement* rendues par la dalle :
   le mélange à 50 % des palettes `SATURATED_PALETTE` et `DESATURATED_PALETTE` du pilote Pimoroni, comme le fait
   `set_image()` par défaut. L'image finale est envoyée en mode « P » à six couleurs exactes : le pilote ne retrame rien.
-- **La couleur vient de la pochette** : l'encre de couleur la plus présente teinte le macaron du disque et la trame
-  de la carte. Le rouge reste réservé à l'artiste et à la marque. Le reste est noir sur blanc.
+- **La couleur vient de la pochette** : l'encre de couleur qui en couvre au moins 12 % choisit le duotone du fond
+  et de la carte. Le cartel reste noir sur blanc, seule la signature 320kbps.club est en rouge.
 - **La carte** est rendue en SVG `crispEdges` puis rastérisée par sharp ; le Pi la ramène à la palette sans tramage.
 - **L'aperçu** (`preview.png`) utilise les couleurs de l'encre : son fond grisâtre est celui de l'écran réel.
 
@@ -133,6 +135,7 @@ Si le Pi bouge dans le cadre, c'est la seule valeur à changer.
 ## Sources
 
 - Flux : `https://www.320kbps.club/feed.xml` (titres, albums, pochettes en `media:content`)
-- Pages d'album de 320kbps.club : année, style, tracklist
+- Pages d'album de 320kbps.club : année, style
 - Contours : [Natural Earth](https://www.naturalearthdata.com) 1:50m, domaine public
 - Villes : [Nominatim](https://nominatim.openstreetmap.org) (OpenStreetMap), une requête par lieu, mise en cache
+- Origine des artistes d'album : [MusicBrainz](https://musicbrainz.org), lieu de naissance ou de formation

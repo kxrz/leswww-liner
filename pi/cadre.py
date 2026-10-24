@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cadre e-ink : un titre de 320kbps.club, son vinyle qui sort de la pochette, et la carte d'où vient l'artiste.
+"""Cadre e-ink : un titre de 320kbps.club présenté comme une œuvre, cartel de musée posé sur la carte d'où vient l'artiste.
 
 Inky Impression 7.3" (Spectra 6), 800x480.
   python3 cadre.py            affiche le prochain titre pas encore vu
@@ -20,7 +20,6 @@ from io import BytesIO
 from pathlib import Path
 from urllib.parse import unquote
 
-import qrcode
 import requests
 from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
 
@@ -104,7 +103,7 @@ def pick_item(seen, guid=None):
 
 
 def album_page(link):
-    """Année, style et tracklist d'un album, lus sur sa page (le flux ne donne qu'un texte éditorial)."""
+    """Année et style d'un album, lus sur sa page (le flux ne donne qu'un texte éditorial)."""
     try:
         page = requests.get(link, timeout=20).text
     except requests.RequestException:
@@ -112,9 +111,7 @@ def album_page(link):
     page = re.sub(r"<script.*?</script>|<style.*?</style>", "", page, flags=re.S)
     words = [w for w in (html.unescape(x).strip() for x in re.split(r"<[^>]+>", page)) if w]
     after = lambda key: words[words.index(key) + 1] if key in words[:-1] else ""
-    tracks = [(words[i - 2], words[i]) for i in range(2, len(words) - 1)
-              if words[i - 1] == "." and words[i - 2].isdigit() and re.fullmatch(r"\d+:\d\d", words[i + 1])]
-    return {"year": after("Year"), "style": after("Styles"), "tracks": tracks}
+    return {"year": after("Year"), "style": after("Styles")}
 
 
 # --- Dessin ----------------------------------------------------------------
@@ -147,115 +144,85 @@ def cover(url, size):
     return img.quantize(palette=pal, dither=Image.Dither.FLOYDSTEINBERG)
 
 
-INK_NAMES = {RED: "red", BLUE: "blue", GREEN: "green", YELLOW: "yellow"}
-
-
-def origin_map(origin, w, h, ink):
-    """Carte rendue par la page web (PNG aux encres pures), ramenée à la palette sans tramage."""
-    if not (URL and origin):
-        return None, origin
-    try:
-        r = requests.get(f"{URL}/api/map", timeout=30,
-                         params={"origin": origin, "w": w, "h": h, "accent": INK_NAMES[ink]})
-        r.raise_for_status()
-    except requests.RequestException as e:
-        print(f"Carte indisponible pour {origin} : {e}")
-        return None, origin
-    pal = Image.new("P", (1, 1))
-    pal.putpalette(PALETTE)
-    img = Image.open(BytesIO(r.content)).convert("RGB").quantize(palette=pal, dither=Image.Dither.NONE)
-    return img, unquote(r.headers.get("X-Place", origin))
+INK_NAMES = {BLACK: "black", WHITE: "white", YELLOW: "yellow", RED: "red", BLUE: "blue", GREEN: "green"}
+# Duotones (fond, trait) choisis d'après l'encre dominante de la pochette
+DUOTONES = {BLUE: (BLUE, WHITE), RED: (RED, WHITE), GREEN: (GREEN, WHITE), YELLOW: (YELLOW, BLACK), None: (WHITE, BLACK)}
 
 
 def accent(img):
-    """L'encre de couleur la plus présente sur la pochette, pour teinter le macaron du disque."""
+    """L'encre de couleur la plus présente sur la pochette, s'il y en a une."""
     total = img.width * img.height
     for n, i in sorted(img.getcolors(), reverse=True):
-        if i in (RED, BLUE, GREEN, YELLOW) and n > total * 0.05:
+        if i in (RED, BLUE, GREEN, YELLOW) and n > total * 0.12:
             return i
-    return RED
+    return None
 
 
-def vinyl(d, cx, cy, r, label):
-    """Disque noir, sillons bleu nuit (discrets sur l'encre), deux reflets, macaron coloré."""
-    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=BLACK)
-    lr = round(r * 0.34)
-    for rr in range(lr + 8, r - 4, 6):
-        d.ellipse((cx - rr, cy - rr, cx + rr, cy + rr), outline=BLUE, width=1)
-    for start in (200, 20):  # reflets en vis-à-vis
-        for rr in range(lr + 16, r - 10, 6):
-            d.arc((cx - rr, cy - rr, cx + rr, cy + rr), start, start + 26, fill=WHITE, width=1)
-    d.ellipse((cx - lr, cy - lr, cx + lr, cy + lr), fill=label)
-    ring = BLACK if label == YELLOW else WHITE
-    d.ellipse((cx - lr + 5, cy - lr + 5, cx + lr - 5, cy + lr - 5), outline=ring, width=1)
-    d.ellipse((cx - 5, cy - 5, cx + 5, cy + 5), fill=WHITE)
-
-
-def qr(d, url, right, bottom):
-    """QR calé en bas à droite, modules de 3 px : lisible au téléphone quelle que soit la longueur de l'URL."""
-    q = qrcode.QRCode(border=0, error_correction=qrcode.constants.ERROR_CORRECT_L)
-    q.add_data(url)
-    m = q.get_matrix()
-    cell = 3
-    x, y = right - len(m) * cell, bottom - len(m) * cell
-    for j, row in enumerate(m):
-        for i, v in enumerate(row):
-            if v:
-                d.rectangle((x + i * cell, y + j * cell, x + (i + 1) * cell - 1, y + (j + 1) * cell - 1), fill=BLACK)
-    return len(m) * cell
+def origin_map(item, box, bg, ink):
+    """Carte rendue par la page web sur toute la zone visible, ramenée à la palette sans tramage."""
+    if not URL:
+        return None, item["country"]
+    w, h = VISIBLE[2] - VISIBLE[0], VISIBLE[3] - VISIBLE[1]
+    where = {"origin": item["country"]} if item["country"] else {"artist": item["artist"]}
+    try:
+        r = requests.get(f"{URL}/api/map", timeout=40, params={
+            **where, "v": 2, "w": w, "h": h, "box": ",".join(str(v) for v in box),
+            "bg": INK_NAMES[bg], "ink": INK_NAMES[ink]})
+        r.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Carte indisponible : {e}")
+        return None, item["country"]
+    pal = Image.new("P", (1, 1))
+    pal.putpalette(PALETTE)
+    img = Image.open(BytesIO(r.content)).convert("RGB").quantize(palette=pal, dither=Image.Dither.NONE)
+    return img, unquote(r.headers.get("X-Place", ""))
 
 
 def render(item, now):
-    img = Image.new("P", (W, H), WHITE)
+    art = cover(item["cover"], 220) if item["cover"] else None
+    bg, ink = DUOTONES[accent(art) if art else None]
+    img = Image.new("P", (W, H), bg)
     img.putpalette(PALETTE)
     d = ImageDraw.Draw(img)
     d.fontmode = "1"  # pas d'anticrénelage : des pixels nets, comme une liseuse
 
-    # Le disque d'abord, la pochette par-dessus : il a l'air d'en glisser
-    cs, r = 260, 118
-    art = cover(item["cover"], cs) if item["cover"] else None
-    ink = accent(art) if art else RED
-    vx = L + cs + 20
-    vinyl(d, vx, T + cs // 2, r, ink)
-    d.rectangle((L + 7, T + 7, L + cs + 7, T + cs + 7), fill=BLACK)  # ombre portée franche
-    if art:
-        img.paste(art, (L, T))
-    else:
-        d.rectangle((L, T, L + cs, T + cs), fill=WHITE, outline=BLACK, width=2)
+    # Cartel de musée : carte blanche à gauche, posée avec une ombre franche
+    cw, pad = 248, 14  # 248 - 2×14 = 220, la largeur de la pochette
+    x0, x1 = L, L + cw
+    inner = cw - 2 * pad
 
-    # Colonne de droite : d'où vient l'artiste
-    cx = vx + r + 22
-    cw = R - cx
-    d.text((cx, T), "320kbps.club", font=mono(14, bold=True), fill=RED)
-    d.text((cx, T + 19), f"{JOURS[now.weekday()]} {now.day} {MOIS[now.month - 1]}", font=mono(13), fill=BLACK)
-    mh = cs - 92
-    carte, place = origin_map(item["country"], cw, mh, ink)
+    # La carte d'abord : le pays se cadre à droite du cartel, ses voisins passent dessous
+    box = (x1 + 30 - VISIBLE[0], 24, VISIBLE[2] - VISIBLE[0] - 24, VISIBLE[3] - VISIBLE[1] - 24)
+    carte, place = origin_map(item, box, bg, ink)
     if carte:
-        img.paste(carte, (cx, T + 50))
-        d.text((cx, T + cs), fit(d, place, sans(18, 550), cw), font=sans(18, 550), fill=BLACK, anchor="ls")
-    elif item.get("tracks"):  # les albums n'ont pas d'origine dans le flux : leur tracklist
-        y = T + 56
-        head = " · ".join(x for x in (item["kind"], item["year"], item.get("style", "")) if x)
-        d.text((cx, y), fit(d, head, mono(13, bold=True), cw), font=mono(13, bold=True), fill=BLACK)
-        d.line((cx, y + 22, R, y + 22), fill=BLACK, width=2)
-        y += 34
-        for n, name in item["tracks"][:8]:
-            d.text((cx, y), n.rjust(2), font=mono(13), fill=RED)
-            d.text((cx + 26, y - 2), fit(d, name, sans(16, 400), cw - 26), font=sans(16, 400), fill=BLACK)
-            y += 24
+        img.paste(carte, VISIBLE[:2])
 
-    # Bandeau du bas : titre en grand, artiste en rouge, une ligne de détails, QR
-    tw = R - L - qr(d, item["link"], R, B) - 24
-    for size in range(50, 25, -2):
-        f = sans(size, 300)
-        if d.textlength(item["title"], font=f) <= tw:
-            break
-    base = T + cs + 26 + size  # titre, artiste et détails serrés en un bloc
-    d.text((L - 2, base), fit(d, item["title"], f, tw), font=f, fill=BLACK, anchor="ls")
-    d.text((L, base + 36), fit(d, item["artist"], sans(24, 600), tw), font=sans(24, 600), fill=RED, anchor="ls")
-    details = " · ".join(x for x in (item["album"], item["year"], item["label"]) if x)
-    if details:
-        d.text((L, base + 62), fit(d, details, mono(13), tw), font=mono(13), fill=BLACK, anchor="ls")
+    # Le texte du cartel, mesuré avant de dessiner la carte blanche
+    lines = [(item["artist"], sans(21, 600), BLACK, 25)]  # (texte, police, couleur, interligne)
+    title = wrap(d, item["title"], sans(18, 300), inner)
+    if len(title) > 2:
+        title = [title[0], " ".join(title[1:])]  # fit() coupera la fin
+    lines += [(line, sans(18, 300), BLACK, 22) for line in title]
+    lines.append(("", None, None, 8))
+    work = ", ".join(x for x in (item["album"] or item["kind"], item["year"]) if x)
+    for text in (" · ".join(x for x in (work, item.get("style", "")) if x), item["label"], place):
+        if text:
+            lines.append((text, mono(12), BLACK, 16))
+    lines.append(("", None, None, 10))
+    lines.append((f"320kbps.club · {now.day:02d}.{now.month:02d}.{now.year}", mono(11), RED, 14))
+
+    text_h = sum(lh for *_, lh in lines)
+    card_h = pad + inner + 14 + text_h + pad
+    y0 = max(T, (T + B - card_h) // 2)
+    d.rectangle((x0 + 8, y0 + 8, x1 + 8, y0 + card_h + 8), fill=BLACK if bg != BLACK else WHITE)
+    d.rectangle((x0, y0, x1, y0 + card_h), fill=WHITE, outline=BLACK, width=1)
+    if art:
+        img.paste(art, (x0 + pad, y0 + pad))
+    y = y0 + pad + inner + 14
+    for text, font, colour, lh in lines:
+        if font:
+            d.text((x0 + pad, y), fit(d, text, font, inner), font=font, fill=colour)
+        y += lh
     return img
 
 

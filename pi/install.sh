@@ -2,7 +2,7 @@
 # Installe (ou met à jour) les services du cadre. À lancer sur le Pi depuis ~/tekpi-eink/pi.
 set -e
 cd "$(dirname "$0")"
-sudo apt-get install -y -qq python3-requests python3-pil python3-qrcode >/dev/null
+sudo apt-get install -y -qq python3-requests python3-pil >/dev/null
 python3 -c "import inky" 2>/dev/null || sudo pip3 install --break-system-packages inky[rpi]
 sudo cp systemd/*.service systemd/*.timer /etc/systemd/system/
 sudo systemctl daemon-reload

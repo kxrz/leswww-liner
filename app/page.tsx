@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { Footer, Nav } from "./Chrome";
 import { Compare } from "./Compare";
+import { Ext } from "./Ext";
 import { Frame } from "./Frame";
+import { Marquee } from "./Marquee";
 import { landingJsonLd } from "@/lib/jsonld";
+import { SITE } from "@/lib/site";
 import { listVisuals, readStatus, slug } from "@/lib/store";
 
 // Public page: rebuilt at most every ten minutes, so a busy day costs nothing to the frame's storage
@@ -11,6 +14,33 @@ export const revalidate = 600;
 const SAMPLES = ["balthazar", "bangalter", "magugu", "agnes-obel", "nils-frahm", "the-verve"].map(
   (name) => `/samples/${name}.png`,
 );
+
+const FAQ = [
+  {
+    q: "What is Liner?",
+    a: "A picture frame with a colour e-ink panel that shows one music track at a time, twice a day, like a work in a museum: the cover and its liner notes on a label, over a map of where the artist comes from.",
+  },
+  {
+    q: "Where do the tracks come from?",
+    a: "From 320kbps.club, where every track is picked by hand. The frame can follow the whole site, a curator, a playlist, or any other RSS feed with covers.",
+  },
+  {
+    q: "How does it know where the artist comes from?",
+    a: "MusicBrainz gives where an artist was born or formed, not where they live now: Thomas Bangalter is from Paris, even if he lives in Beverly Hills. A track whose origin cannot be found is never shown.",
+  },
+  {
+    q: "Does it work on a black and white e-ink panel?",
+    a: "Yes. Every picture also exists in two inks: the cover becomes a 1-bit dither, the map a line drawing.",
+  },
+  {
+    q: "Is there a subscription?",
+    a: "No. The code is open source under the MIT License, the maps use free open data, and the wallpapers are free to download.",
+  },
+  {
+    q: "Can I buy one ready-made?",
+    a: "Not at the moment: the build guide is free and takes about an afternoon. For something made to measure, talk to LesWWW.",
+  },
+];
 
 export default async function Home() {
   const [status, visuals] = await Promise.all([readStatus(), listVisuals()]);
@@ -28,166 +58,157 @@ export default async function Home() {
     hdDownload: full?.hd?.downloadUrl ?? "/samples/bangalter-4k.jpg",
     alt: full && status ? `${status.artist} — ${status.title}` : "Thomas Bangalter — Mythologies: XIX. Circonvolutions",
   };
-  const strip = [...recent, ...SAMPLES].slice(0, 10);
+  const nowAlt = status
+    ? `Liner showing ${status.artist} — ${status.title}${status.place ? `, over a map of ${status.place}` : ""}`
+    : "Liner showing Thomas Bangalter, over a map of Paris, France";
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(landingJsonLd()) }} />
-      <Nav />
-      <main className="wrap">
-        {/* AIDA: the picture and the headline catch the eye, the lede explains, the list makes you want one, the buttons act */}
-        <section className="hero hero-split">
-          <div className="hero-copy">
-            <div className="hero-tags">
-              <a href="https://www.leswww.com" className="tag tag-live">A LesWWW project</a>
-              <span className="label">Music from 320kbps.club</span>
-            </div>
-            <h1>
-              One track on your wall, <mark>like a work in a museum.</mark>
-            </h1>
-            <p className="lede">
-              Liner is an e-ink frame that hangs a single track from <a href="https://www.320kbps.club">320kbps.club</a>,
-              twice a day: its cover and liner notes on a museum label, over a map of where the artist comes from.
-            </p>
-            <ul className="perks">
-              <li>Picked by a curator, never an algorithm</li>
-              <li>Where the artist comes from, mapped</li>
-              <li>A free 4K wallpaper of every track</li>
-              <li>Open source: a Pi, a panel, an afternoon</li>
-            </ul>
-            <div className="actions">
-              <a href="https://github.com/kxrz/leswww-liner/blob/main/docs/BUILD.md" className="btn">Build your own →</a>
-              <Link href="/gallery" className="btn secondary">Get the wallpapers</Link>
-            </div>
-          </div>
-          <figure className="hero-frame">
-            <Frame src={current?.eink?.url ?? SAMPLES[1]} alt={status ? `${status.artist} — ${status.title}` : "Thomas Bangalter on Liner"} />
-            {status && (
-              <figcaption className="label">
-                <span className="tag tag-live">On the wall now</span> <strong>{status.artist}</strong> — {status.title}
-                {status.place ? ` · ${status.place}` : ""}
-              </figcaption>
-            )}
-          </figure>
-        </section>
-      </main>
-
-      <section className="strip" aria-label="Recently on the wall">
-        <div className="marquee">
-          {[...strip, ...strip].map((src, i) => (
-            <Frame key={i} src={src} alt="" small />
-          ))}
-        </div>
-      </section>
-
-      <main className="wrap">
-        <section className="block">
-          <h2>What hangs on the wall</h2>
-          <div className="cards">
-            <article className="card">
-              <span className="tag">Curated</span>
-              <h3>Every track picked by hand</h3>
-              <p>Liner reads the 320kbps.club feed, where each track is chosen, listened to and written up by a person, not an algorithm.</p>
-            </article>
-            <article className="card">
-              <span className="tag tag-verified">Located</span>
-              <h3>Where the artist comes from</h3>
-              <p>Not where they live now: Thomas Bangalter is from Paris. MusicBrainz gives the birthplace, Natural Earth draws the country.</p>
-            </article>
-            <article className="card">
-              <span className="tag">Printed in ink</span>
-              <h3>Six inks, no greys</h3>
-              <p>Black, white, yellow, red, blue, green. The cover is dithered, the text is never smoothed, and the map takes the cover&apos;s colour.</p>
-            </article>
-          </div>
-        </section>
-
-        <section className="block">
-          <h2>Prepared for e-ink</h2>
-          <p className="block-lede">
-            Every track is drawn twice. Once in full definition, then once for the panel: six inks, a dithered cover,
-            text without smoothing, a map that snaps to the pixel. Drag to compare.
-          </p>
-          <Compare hd={art.hd} eink={art.eink} alt={art.alt} />
-          <div className="duo">
-            <div>
-              <Frame src={art.bw} alt={`${art.alt}, black and white`} />
-            </div>
-            <div className="duo-text">
-              <span className="tag">Mono panels too</span>
-              <h3>In black and white</h3>
-              <p>
-                The same picture in two inks, for black and white e-ink panels: the cover becomes a 1-bit dither, the map
-                a line drawing.
+      <Nav current="home" />
+      <main id="main" tabIndex={-1}>
+        <div className="wrap">
+          {/* AIDA: the picture and the headline catch the eye, the lede explains, the list makes you want one, the buttons act */}
+          <section className="hero hero-split">
+            <div className="hero-copy">
+              <div className="hero-tags">
+                <Ext href={SITE.studio} className="tag tag-live">A LesWWW project</Ext>
+                <span className="label">E-ink music frame · music from 320kbps.club</span>
+              </div>
+              <h1>
+                Liner: one track on your wall, <mark>like a work in a museum.</mark>
+              </h1>
+              <p className="lede">
+                An e-ink frame that hangs a single track from <Ext href={SITE.music}>320kbps.club</Ext>, twice a day: its
+                cover and liner notes on a museum label, over a map of where the artist comes from.
               </p>
-              <span className="tag tag-live">Wallpaper</span>
-              <h3>As a 4K wallpaper</h3>
-              <p>The HD drawing, 3840 × 2160, in the tones of the panel. A new one every time the frame changes.</p>
-              <div className="actions tight">
-                <a href={art.hdDownload} className="btn">Today&apos;s 4K wallpaper ↓</a>
-                <Link href="/gallery" className="btn secondary">More wallpapers →</Link>
+              <ul className="perks">
+                <li>Picked by a curator, never an algorithm</li>
+                <li>Where the artist comes from, mapped</li>
+                <li>A free 4K wallpaper of every track</li>
+                <li>Open source: a Pi, a panel, an afternoon</li>
+              </ul>
+              <div className="actions">
+                <Ext href={SITE.build} className="btn">Build your own <span aria-hidden="true">→</span></Ext>
+                <Link href="/gallery" className="btn secondary">Get the wallpapers</Link>
               </div>
             </div>
-          </div>
-        </section>
+            <figure className="hero-frame">
+              <Frame src={current?.eink?.url ?? SAMPLES[1]} alt={nowAlt} priority />
+              {status && (
+                <figcaption className="label">
+                  <span className="tag tag-verified">On the wall now</span> <strong>{status.artist}</strong> — {status.title}
+                  {status.place ? ` · ${status.place}` : ""}
+                </figcaption>
+              )}
+            </figure>
+          </section>
+        </div>
 
-        <section className="block" id="how">
-          <h2>How it works</h2>
-          <ol className="how">
-            <li><span className="label">01</span><p><strong>7:00 and 19:00.</strong> The Raspberry Pi takes the newest track it has not shown yet from 320kbps.club.</p></li>
-            <li><span className="label">02</span><p><strong>A map, drawn in the cloud.</strong> Vercel looks up where the artist comes from and renders the map in the panel&apos;s inks.</p></li>
-            <li><span className="label">03</span><p><strong>A museum label, drawn on the Pi.</strong> Cover, artist, title, album, label and origin, laid out pixel by pixel.</p></li>
-            <li><span className="label">04</span><p><strong>Your turn.</strong> From the control room, skip to the next track, pick any track, or download the picture as a PNG.</p></li>
-          </ol>
-        </section>
+        <Marquee pictures={[...recent, ...SAMPLES].slice(0, 10)} />
 
-        <section className="block">
-          <h2>Hardware</h2>
-          <dl className="specs">
-            <dt className="label">Computer</dt><dd>Raspberry Pi Zero 2 W</dd>
-            <dt className="label">Screen</dt><dd>Pimoroni Inky Impression 7.3&quot; Spectra 6 · 800 × 480 · six inks</dd>
-            <dt className="label">Frame</dt><dd>A plain photo frame with a mat</dd>
-            <dt className="label">Software</dt><dd>Python and Pillow on the Pi · Next.js and Vercel Blob in the cloud</dd>
-            <dt className="label">Data</dt><dd>320kbps.club · MusicBrainz · Natural Earth · OpenStreetMap</dd>
-          </dl>
-        </section>
+        <div className="wrap">
+          <section className="block" aria-labelledby="prepared">
+            <h2 id="prepared">Prepared for e-ink</h2>
+            <p className="block-lede">
+              Every track is drawn twice. Once in full definition, then once for the panel&apos;s six inks (black, white,
+              yellow, red, blue, green): a dithered cover, text without smoothing, a map that snaps to the pixel.
+            </p>
+            <Compare hd={art.hd} eink={art.eink} alt={art.alt} />
+            <div className="duo">
+              <div>
+                <Frame src={art.bw} alt={`${art.alt}, in black and white`} />
+              </div>
+              <div className="duo-text">
+                <h3>In black and white</h3>
+                <p>
+                  The same picture in two inks, for black and white e-ink panels: the cover becomes a 1-bit dither, the
+                  map a line drawing.
+                </p>
+                <h3>As a 4K wallpaper</h3>
+                <p>The HD drawing, 3840 × 2160, in the tones of the panel. A new one every time the frame changes.</p>
+                <a href={art.hdDownload} className="text-link" download>
+                  Download today&apos;s 4K wallpaper<span className="sr-only">: {art.alt}</span>
+                </a>
+              </div>
+            </div>
+          </section>
 
-        <section className="block maker">
-          <div className="maker-head">
-            <img src="/florent.webp" alt="Florent Bertiaux" width={96} height={96} className="avatar" />
-            <div>
-              <span className="label">Made by</span>
-              <h2 className="name">
-                Florent Bertiaux, <mark>creative, curator and geek.</mark>
-              </h2>
-            </div>
-          </div>
-          <div className="roles">
-            <div>
-              <h3>Creative</h3>
-              <p>Runs <a href="https://leswww.com">LesWWW</a>, a creative technology studio in Lille. Designed the label, the duotones and the frame.</p>
-            </div>
-            <div>
-              <h3>Curator</h3>
-              <p>Picks every track on <a href="https://www.320kbps.club">320kbps.club</a>, a hand-curated music discovery site, one track at a time.</p>
-            </div>
-            <div>
-              <h3>Geek</h3>
-              <p>Wired the Pi, the e-ink panel, the maps and the cloud, and opened the code for anyone to build their own.</p>
-            </div>
-          </div>
-        </section>
+          <section className="block" id="how" aria-labelledby="how-title">
+            <h2 id="how-title">How it works</h2>
+            <ol className="how">
+              <li><span className="label">01</span><p><strong>7:00 and 19:00.</strong> The Raspberry Pi takes the newest track it has not shown yet from 320kbps.club, or from any feed you choose.</p></li>
+              <li><span className="label">02</span><p><strong>A map, drawn in the cloud.</strong> Vercel looks up where the artist comes from and renders the map in the panel&apos;s inks.</p></li>
+              <li><span className="label">03</span><p><strong>A museum label, drawn on the Pi.</strong> Cover, artist, title, album, label and origin, laid out pixel by pixel.</p></li>
+              <li><span className="label">04</span><p><strong>Your turn.</strong> From the <Link href="/control" rel="nofollow">control room</Link> on your phone, skip to the next track, pick any track or feed, or download the pictures.</p></li>
+            </ol>
+          </section>
 
-        <section className="block">
-          <div className="cta">
-            <h2>Want one on your wall? The code is yours.</h2>
-            <p>Liner is open source under the MIT License: a Pi, a Pimoroni panel, a frame, and an afternoon.</p>
+          <section className="block" id="build" aria-labelledby="build-title">
+            <h2 id="build-title">Build it</h2>
+            <p className="block-lede">About €140 of parts and an afternoon. No soldering, no subscription.</p>
+            <dl className="specs">
+              <dt className="label">Computer</dt><dd>Raspberry Pi Zero 2 WH, with its header soldered</dd>
+              <dt className="label">Screen</dt><dd>Pimoroni Inky Impression 7.3&quot; Spectra 6 · 800 × 480 · six inks</dd>
+              <dt className="label">Frame</dt><dd>A plain photo frame with a mat, a microSD card and a 5 V power supply</dd>
+              <dt className="label">Software</dt><dd>Python and Pillow on the Pi · Next.js and Vercel Blob in the cloud, both open source</dd>
+              <dt className="label">Data</dt><dd>320kbps.club · MusicBrainz · Natural Earth · OpenStreetMap</dd>
+            </dl>
             <div className="actions">
-              <a href="https://github.com/kxrz/leswww-liner/blob/main/docs/BUILD.md" className="btn accent">Build your own →</a>
-              <a href="https://leswww.com/contact" className="btn secondary inverse">Talk to LesWWW</a>
+              <Ext href={SITE.build} className="btn">Read the build guide <span aria-hidden="true">→</span></Ext>
+              <Ext href={SITE.repo} className="btn secondary">Source on GitHub</Ext>
             </div>
-          </div>
-        </section>
+          </section>
+
+          <section className="block" aria-labelledby="faq-title">
+            <h2 id="faq-title">Questions</h2>
+            <div className="faq">
+              {FAQ.map(({ q, a }) => (
+                <details key={q}>
+                  <summary>{q}</summary>
+                  <p>{a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+
+          <section className="block maker" aria-labelledby="maker-title">
+            <div className="maker-head">
+              <img src="/florent.webp" alt="" width={96} height={96} className="avatar" />
+              <div>
+                <span className="label">Made by</span>
+                <h2 id="maker-title">Florent Bertiaux, creative, curator and geek</h2>
+              </div>
+            </div>
+            <div className="roles">
+              <div>
+                <h3>Creative</h3>
+                <p>Runs <Ext href={SITE.studio}>LesWWW</Ext>, a creative technology studio in Lille. Designed the label, the duotones and the frame.</p>
+              </div>
+              <div>
+                <h3>Curator</h3>
+                <p>Picks every track on <Ext href={SITE.music}>320kbps.club</Ext>, a hand-curated music discovery site, one track at a time.</p>
+              </div>
+              <div>
+                <h3>Geek</h3>
+                <p>Wired the Pi, the e-ink panel, the maps and the cloud, and opened the code for anyone to build their own.</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="block" aria-labelledby="cta-title">
+            <div className="cta">
+              <h2 id="cta-title">Want one on your wall? The code is yours.</h2>
+              <p>Liner is open source under the MIT License: a Pi, a Pimoroni panel, a frame, and an afternoon.</p>
+              <div className="actions">
+                <Ext href={SITE.build} className="btn inverse">Build your own <span aria-hidden="true">→</span></Ext>
+              </div>
+              <p className="cta-aside">
+                Something made to measure? <Ext href={SITE.contact}>Talk to LesWWW</Ext>.
+              </p>
+            </div>
+          </section>
+        </div>
       </main>
       <Footer />
     </>

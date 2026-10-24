@@ -36,19 +36,25 @@ export function NowPlaying({ status, pictures = {}, pending }: Props) {
 
   const step = done ? 3 : elapsed < POLL_SECONDS ? 1 : 2;
   const steps = ["Request sent", "Frame picks it up · within a minute", `E-ink redraw · about ${REDRAW_SECONDS} seconds`];
+  // Said out loud by screen readers: the list's classes change, its text does not
+  const progress = done ? "Done: the new picture is on the wall." : `Step ${step + 1} of 3: ${steps[step]}.`;
 
   return (
     <section className="now">
       <Frame
         src={pictures.eink && status ? `${pictures.eink.url}?v=${status.at}` : undefined}
-        alt={status ? `${status.artist} — ${status.title}` : "The frame"}
+        alt={status ? `Liner showing ${status.artist} — ${status.title}${status.place ? `, over a map of ${status.place}` : ""}` : "The frame"}
         state={pending ? (done ? "flash" : "waiting") : undefined}
       />
 
+      <p className="sr-only" role="status">{pending ? progress : ""}</p>
       {pending ? (
-        <ol className="steps" aria-live="polite">
+        <ol className="steps">
           {steps.map((label, i) => (
-            <li key={label} className={i < step ? "done" : i === step ? "active" : ""}>{label}</li>
+            <li key={label} className={i < step ? "done" : i === step ? "active" : ""} aria-current={i === step ? "step" : undefined}>
+              {label}
+              {i < step && <span className="sr-only"> (done)</span>}
+            </li>
           ))}
         </ol>
       ) : null}
@@ -62,9 +68,11 @@ export function NowPlaying({ status, pictures = {}, pending }: Props) {
       {status && (
         <div className="caption">
           <div>
-            <span className="tag tag-live">On the wall</span>
-            <p className="track-artist">{status.artist}</p>
-            <p className="track-title">{status.title}</p>
+            <span className="tag tag-verified">On the wall</span>
+            <h2 className="track-heading">
+              <span className="track-artist">{status.artist}</span>
+              <span className="track-title">{status.title}</span>
+            </h2>
             <p className="label">
               {[status.place, `since ${when.format(new Date(status.at))}`].filter(Boolean).join(" · ")}
             </p>
@@ -74,9 +82,9 @@ export function NowPlaying({ status, pictures = {}, pending }: Props) {
 
       {status && (pictures.eink || pictures.bw || pictures.hd) && (
         <div className="downloads">
-          {pictures.eink && <a href={pictures.eink.downloadUrl} className="btn secondary small">E-ink PNG ↓</a>}
-          {pictures.bw && <a href={pictures.bw.downloadUrl} className="btn secondary small">Black &amp; white ↓</a>}
-          {pictures.hd && <a href={pictures.hd.downloadUrl} className="btn small">4K wallpaper ↓</a>}
+          {pictures.hd && <a href={pictures.hd.downloadUrl} download className="btn small">4K wallpaper<span aria-hidden="true"> ↓</span></a>}
+          {pictures.eink && <a href={pictures.eink.downloadUrl} download className="btn secondary small">E-ink PNG<span aria-hidden="true"> ↓</span></a>}
+          {pictures.bw && <a href={pictures.bw.downloadUrl} download className="btn secondary small">Black &amp; white PNG<span aria-hidden="true"> ↓</span></a>}
         </div>
       )}
     </section>

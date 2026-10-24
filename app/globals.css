@@ -62,15 +62,62 @@ img {
   max-width: 100%;
 }
 
+/* Links are underlined in their own colour: a lemon underline on white is invisible (RGAA 10.6) */
 a {
   color: inherit;
-  text-decoration-color: var(--accent);
-  text-decoration-thickness: 2px;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 
 a:hover {
   text-decoration-color: var(--pop2);
+  text-decoration-thickness: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  a {
+    text-decoration-color: var(--accent);
+  }
+}
+
+/* One visible focus everywhere, in ink (RGAA 10.7) */
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  padding: 0.5rem 0.9rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--mono), ui-monospace, monospace;
+  font-size: 0.875rem;
+  transform: translateY(-200%);
+}
+
+.skip:focus {
+  transform: none;
+}
+
+main:focus {
+  outline: none;
 }
 
 strong {
@@ -213,15 +260,18 @@ h3 {
   color: var(--accent-ink);
 }
 
-.btn.accent {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+/* On the ink call-to-action block, the primary button turns paper */
+.btn.inverse {
+  background: var(--paper);
+  border-color: var(--paper);
+  color: var(--ink);
 }
 
-.btn.secondary.inverse {
-  border-color: var(--paper);
-  color: var(--paper);
+.text-link {
+  font-family: var(--mono), ui-monospace, monospace;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .btn.small {
@@ -290,7 +340,28 @@ form.actions .btn {
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
+  color: var(--ink);
+}
+
+.lockup-slash,
+.lockup-product {
+  font-family: var(--display), system-ui, sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.lockup-slash {
+  color: var(--ink-soft);
+}
+
+@media (min-width: 40rem) {
+  .lockup-slash,
+  .lockup-product {
+    font-size: 2.3rem;
+  }
 }
 
 .wordmark {
@@ -316,9 +387,49 @@ form.actions .btn {
 
 .nav nav {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
-  gap: 1.5rem;
+  gap: 0.5rem 1.25rem;
   white-space: nowrap;
+}
+
+.nav nav a[aria-current="page"] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+.icon-link {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--ink);
+  color: var(--ink) !important;
+}
+
+.icon-link:hover,
+.icon-link[aria-current="page"] {
+  background: var(--accent);
+  color: var(--accent-ink) !important;
+}
+
+/* Reflow at 320 px (RGAA 10.11): the lockup and nav share the width */
+@media (max-width: 26rem) {
+  .nav-inner {
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+  }
+
+  .wordmark {
+    height: 1.4rem;
+  }
+
+  .lockup-slash,
+  .lockup-product {
+    font-size: 1.3rem;
+  }
 }
 
 .nav nav a {
@@ -369,10 +480,20 @@ form.actions .btn {
   line-height: 1;
 }
 
-.footer nav {
+.footer-nav {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.footer-nav p {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
+  gap: 0.4rem 1.25rem;
+}
+
+.footer-group {
+  min-width: 5rem;
+  color: var(--ink);
 }
 
 .footer nav a {
@@ -392,7 +513,7 @@ form.actions .btn {
 /* --- Landing --- */
 
 .hero {
-  margin: 2.5rem 0 3rem;
+  margin: 2.5rem 0 1rem;
   padding-bottom: 2.5rem;
   border-bottom: 4px solid var(--ink);
 }
@@ -464,11 +585,10 @@ form.actions .btn {
 .perks li::before {
   content: "";
   flex: none;
-  width: 0.7rem;
-  height: 0.7rem;
-  background: var(--accent);
-  border: 1px solid var(--ink);
-  transform: translateY(0.05rem);
+  width: 0.6rem;
+  height: 0.6rem;
+  background: var(--ink);
+  transform: translateY(-0.05rem);
 }
 
 .hero-frame {
@@ -590,14 +710,8 @@ form.actions .btn {
   border: 1px solid var(--ink);
 }
 
-.maker .name {
+.maker-head h2 {
   margin-top: 0.5rem;
-  font-family: var(--sans), system-ui, sans-serif;
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
 }
 
 .roles {
@@ -649,7 +763,8 @@ form.actions .btn {
 
 /* Recently on the wall: a slow marquee */
 .strip {
-  margin-top: 4rem;
+  position: relative;
+  margin-top: 1.5rem;
   padding: 2rem 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -663,8 +778,18 @@ form.actions .btn {
   animation: marquee 90s linear infinite;
 }
 
-.strip:hover .marquee {
+.strip:hover .marquee,
+.strip:focus-within .marquee,
+.marquee.paused {
   animation-play-state: paused;
+}
+
+.strip-toggle {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.6rem;
+  border: 1px solid var(--ink);
+  cursor: pointer;
 }
 
 @keyframes marquee {
@@ -925,7 +1050,8 @@ form.actions .btn {
 
   .screen.waiting::after,
   .screen.flash::after,
-  .marquee {
+  .marquee,
+  .steps li.active::before {
     animation: none;
   }
 }
@@ -1154,7 +1280,114 @@ form.actions .btn {
   font: inherit;
 }
 
-.login input:focus {
-  outline: 3px solid var(--accent);
-  outline-offset: 0;
+
+/* --- Audit additions: compare focus, featured track, FAQ, forms --- */
+
+.compare-stage:has(input:focus-visible) {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.compare-stage:has(input:focus-visible) .compare-handle {
+  width: 8px;
+  margin-left: -4px;
+}
+
+.compare figcaption {
+  margin-top: 0.6rem;
+}
+
+.featured {
+  display: grid;
+  gap: 1.5rem;
+  align-items: end;
+}
+
+@media (min-width: 60rem) {
+  .featured {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 2.5rem;
+  }
+}
+
+.featured-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.track-heading {
+  font-family: var(--sans), system-ui, sans-serif;
+  text-transform: none;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.track-heading .track-artist,
+.track-heading .track-title {
+  display: block;
+}
+
+.featured .track-heading {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.featured .track-heading .track-title,
+.gallery .track-heading .track-title {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.gallery .track-heading {
+  font-size: 1.05rem;
+}
+
+.now-tag {
+  margin-bottom: 0.25rem;
+}
+
+.faq {
+  border-top: 1px solid var(--line);
+}
+
+.faq details {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq summary {
+  padding: 1rem 0;
+  font-weight: 700;
+  font-size: 1.0625rem;
+  cursor: pointer;
+}
+
+.faq details p {
+  padding-bottom: 1.1rem;
+  max-width: 44rem;
+  color: var(--ink-soft);
+}
+
+.cta-aside {
+  margin-top: 1.25rem;
+  font-size: 0.95rem;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.login label,
+.source label {
+  flex-basis: 100%;
+}
+
+.login input:focus,
+.source input:focus {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--accent);
 }

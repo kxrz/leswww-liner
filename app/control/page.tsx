@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { login, send, setSource } from "../actions";
 import { Footer, Nav } from "../Chrome";
-import { NowPlaying } from "../NowPlaying";
+import { NowPlaying, type Coming } from "../NowPlaying";
 import { Tracks } from "../Tracks";
 import { isLoggedIn } from "@/lib/auth";
 import { getItems } from "@/lib/feed";
@@ -63,10 +63,14 @@ export default async function Control({ searchParams }: { searchParams: Promise<
   const fresh = Date.now() - requested < STALE_MINUTES * 60_000;
   const pending = waiting && fresh ? requested : null;
   const asked = command?.action === "show" ? items.find((i) => i.guid === command.guid) : undefined;
-  const what = {
-    show: asked ? `${asked.artist} — ${asked.title}` : "The track you picked",
-    next: "The next track of the feed",
-    refresh: status ? `A redraw of ${status.artist} — ${status.title}` : "A redraw",
+  const coming: Coming = {
+    show: asked
+      ? { label: `${asked.artist} — ${asked.title}`, artist: asked.artist, title: asked.title, cover: asked.cover }
+      : { label: "The track you picked" },
+    next: { label: "The next track of the feed" },
+    refresh: status
+      ? { label: `${status.artist} — ${status.title}`, artist: status.artist, title: status.title, redraw: true }
+      : { label: "A redraw", redraw: true },
   }[command?.action ?? "next"];
   const away = { asleep: "the frame is asleep, it wakes at 7:00", silent: "the frame has gone silent, when it is back", online: undefined, unknown: undefined }[frame.state];
 
@@ -93,7 +97,7 @@ export default async function Control({ searchParams }: { searchParams: Promise<
           status={status}
           pictures={status ? visuals.get(slug(status.guid)) : undefined}
           pending={pending}
-          requested={what}
+          coming={coming}
           away={away}
           done={!!status && Number(params.done) === status.command}
           stale={waiting && !fresh}

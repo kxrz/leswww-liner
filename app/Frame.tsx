@@ -14,19 +14,23 @@ type Props = {
   alt: string;
   /** Drives the waiting and flash animations of the control room. */
   state?: "waiting" | "flash";
+  /** While waiting: the cover of the track on its way, in place of the picture that fades out. */
+  coming?: string;
   small?: boolean;
   /** The largest picture of the page: load it first. */
   priority?: boolean;
 };
 
 /** The physical frame: black wood, white mat, then the panel. */
-export function Frame({ src, alt, state, small = false, priority = false }: Props) {
+export function Frame({ src, alt, state, coming, small = false, priority = false }: Props) {
   return (
     <div className={small ? "frame small" : "frame"}>
       <div className="mat">
         <div className={state ? `screen ${state}` : "screen"} style={{ aspectRatio: `${visibleW} / ${visibleH}` }}>
           {src ? (
             <img
+              key={src}
+              className="picture"
               src={src}
               alt={alt}
               style={crop}
@@ -35,8 +39,9 @@ export function Frame({ src, alt, state, small = false, priority = false }: Prop
               decoding="async"
             />
           ) : (
-            <p className="empty">Nothing on the wall yet</p>
+            !coming && <p className="empty">Nothing on the wall yet</p>
           )}
+          {coming && state === "waiting" && <img src={coming} alt="" className="coming" />}
         </div>
       </div>
     </div>

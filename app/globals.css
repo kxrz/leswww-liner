@@ -1026,6 +1026,37 @@ form.actions .btn {
   to { background-position: 160% 0; }
 }
 
+/* A request on its way: the picture on the wall fades out, the cover of the track coming takes its place */
+.screen .picture {
+  transition: opacity 1.2s ease;
+}
+
+.screen.waiting .picture {
+  opacity: 0;
+}
+
+.screen .coming {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  height: 62%;
+  width: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  opacity: 0.85;
+  box-shadow: 0 6px 18px -8px rgb(0 0 0 / 0.5);
+  animation: appear 1.2s ease both;
+}
+
+/* The new picture arrives under the flash, then settles */
+.screen.flash .picture {
+  animation: appear 1.5s ease both;
+}
+
+@keyframes appear {
+  from { opacity: 0; }
+}
+
 /* Done: the full-refresh flash of a colour e-ink panel, black, white, a colour, then the picture */
 .screen.flash::after {
   content: "";
@@ -1050,6 +1081,8 @@ form.actions .btn {
 
   .screen.waiting::after,
   .screen.flash::after,
+  .screen.flash .picture,
+  .screen .coming,
   .marquee,
   .steps li.active::before {
     animation: none;
@@ -1178,6 +1211,10 @@ form.actions .btn {
   align-items: flex-end;
   gap: 1rem;
   margin-top: 1.5rem;
+}
+
+.coming-caption .track-heading {
+  animation: appear 0.8s ease both;
 }
 
 .caption .label {

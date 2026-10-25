@@ -11,6 +11,9 @@ export async function GET() {
     handled: status?.command ?? 0,
     artist: status?.artist,
     title: status?.title,
+    place: status?.place,
+    at: status?.at,
+    visual: status?.visual,
     refused: status?.refused,
     reason: status?.reason,
   });

@@ -19,7 +19,19 @@ export type Catalog = { site: Source[]; curators: Curator[]; playlists: Source[]
 const BASE = "https://www.320kbps.club";
 const DAY = 60 * 60 * 24;
 
-export const SITE_FEED: Source = { url: `${BASE}/feed.xml`, label: "Everything on 320kbps.club", kind: "site" };
+export const SITE_FEED: Source = {
+  url: `${BASE}/feed.xml`,
+  label: "Everything on 320kbps.club",
+  kind: "site",
+  note: "The 50 newest additions",
+};
+/** The whole catalogue, track by track: /feed.xml stops at the 50 newest additions. */
+export const ALL_FEED: Source = {
+  url: `${BASE}/tracks/feed.xml`,
+  label: "All tracks",
+  kind: "site",
+  note: "The whole catalogue, newest first",
+};
 export const DAILY_FEED: Source = {
   url: `${BASE}/today/feed.xml`,
   label: "Track of the day",
@@ -96,7 +108,7 @@ export async function getCatalog(): Promise<Catalog> {
     }),
   );
 
-  return { site: [SITE_FEED, DAILY_FEED], curators, playlists, genres };
+  return { site: [SITE_FEED, ALL_FEED, DAILY_FEED], curators, playlists, genres };
 }
 
 /** Every source in one list, to name a feed the frame follows. */

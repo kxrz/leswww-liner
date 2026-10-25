@@ -171,7 +171,8 @@ On a phone, "Add to Home Screen" turns the page into a small app. Locally: `npm 
 ### Web
 
 - `/control` (password) shows the frame and its health (online, silent or asleep; temperature, uptime, code
-  version), sends requests, picks the **feed to follow** (any RSS feed; every 320kbps.club curator and playlist is
+  version), searches the feed (ten tracks at a time) and sends one to the screen, follows the request step by step
+  (no new request until the frame is done, downloads still work), picks the **feed to follow** (any RSS feed; every 320kbps.club curator and playlist is
   suggested), and offers the three downloads for each track.
 - `/gallery` lists what has hung on the wall: click a picture to hang it in the frame mockup, download the 4K
   wallpaper, or listen on 320kbps.club.

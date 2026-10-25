@@ -1,4 +1,4 @@
-import { del, get, list, put } from "@vercel/blob";
+import { del, list, put } from "@vercel/blob";
 
 /** A request from the page. `id` grows with each request; the frame remembers the last one it handled. */
 export type Command = { id: number; action: "next" | "refresh" | "show"; guid?: string };
@@ -6,8 +6,9 @@ export type Command = { id: number; action: "next" | "refresh" | "show"; guid?: 
 /** What the frame reports after each redraw. */
 export type Status = {
   at: string; guid: string; title: string; artist: string; command: number; place?: string; visual?: string;
-  /** A track asked for but not hung, because no map of its origin could be found. */
+  /** A track asked for but not hung, and why (no map of its origin, gone from the feed, an error on the frame). */
   refused?: string;
+  reason?: string;
 };
 
 /** A picture made for one track, downloadable from the page. */
@@ -29,11 +30,16 @@ const COMMAND = "liner/command.json";
 const STATUS = "liner/status.json";
 const VISUALS = "liner/pictures/";
 
+/** The store's public address, read from its token ("vercel_blob_rw_<store>_<secret>"). */
+const storeUrl = () => `https://${(process.env.BLOB_READ_WRITE_TOKEN ?? "").split("_")[3]}.public.blob.vercel-storage.com/`;
+
 async function read<T>(pathname: string): Promise<T | null> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null; // no Blob store when running locally
   try {
-    // Straight from origin: a request must reach the frame now, not when the CDN copy expires
-    const res = await get(pathname, { access: "public", useCache: false });
-    return res?.stream ? ((await new Response(res.stream).json()) as T) : null;
+    // Straight from origin: a request must reach the frame now, not when the CDN copy expires.
+    // (The SDK's `useCache: false` only applies to private stores, so the query string does the job here.)
+    const res = await fetch(`${storeUrl()}${pathname}?t=${Date.now()}`, { cache: "no-store" });
+    return res.ok ? ((await res.json()) as T) : null;
   } catch {
     return null;
   }
@@ -45,6 +51,7 @@ async function write(pathname: string, data: unknown): Promise<void> {
     allowOverwrite: true,
     addRandomSuffix: false,
     contentType: "application/json",
+    cacheControlMaxAge: 60, // the shortest the store allows: these files change all the time
   });
 }
 

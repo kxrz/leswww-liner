@@ -11,3 +11,6 @@ export const VISIBLE = { x0, y0, x1, y1 };
 /** How long the frame takes: it polls every minute, then the e-ink redraw lasts about 30 seconds. */
 export const POLL_SECONDS = 60;
 export const REDRAW_SECONDS = 35;
+
+/** A request the frame has not handled after this long no longer locks the control room. */
+export const STALE_MINUTES = 10;

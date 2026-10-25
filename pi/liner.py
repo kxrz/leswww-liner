@@ -89,11 +89,15 @@ def fetch(url, limit=5_000_000, timeout=20):
 
 
 def pick_item(seen, guid=None, feed=FEED):
-    """The requested track, otherwise the newest one not shown yet (starting over once all have been shown)."""
+    """The requested track (None if it is no longer in the feed), otherwise the newest one not shown yet
+    (starting over once all have been shown)."""
     root = parse_xml(fetch(feed))
     items = [i for i in root.iter("item") if "/playlist/" not in i.findtext("link")]
-    item = next((i for i in items if i.findtext("guid") == guid), None) if guid else None
-    if item is None:
+    if guid:
+        item = next((i for i in items if i.findtext("guid") == guid), None)
+        if item is None:  # never swap in another track: the page asked for this one
+            return None
+    else:
         item = next((i for i in items if i.findtext("guid") not in seen), None)
     if item is None:
         seen.clear()
@@ -338,6 +342,9 @@ def show(guid=None, command=0):
     now = datetime.now()
     for _ in range(1 if guid else 10):
         item = pick_item(seen, guid, state.get("feed", FEED))
+        if item is None:
+            print(f"Refused, not in the feed: {guid}")
+            return refuse(command, guid.rstrip("/").split("/")[-1], "it is no longer in the feed the frame follows")
         raw = fetch_cover(item["cover"])
         img = render(item, now, "eink", raw)
         if item["mapped"] or "--preview" in sys.argv:
@@ -346,12 +353,8 @@ def show(guid=None, command=0):
         seen = [g for g in seen if g != item["guid"]] + [item["guid"]]  # not picked again
     if not item["mapped"] and "--preview" not in sys.argv:
         state["seen"] = seen
-        state["command"] = max(command, state.get("command", 0))
         STATE.write_text(json.dumps(state))
-        if URL and command and state.get("current"):  # let the page know, or it would wait forever
-            requests.post(f"{URL}/api/pi", headers=AUTH, timeout=20,
-                          json={**state["current"], "command": command, "refused": f"{item['artist']} — {item['title']}"})
-        return
+        return refuse(command, f"{item['artist']} — {item['title']}", "Liner found no map of where the artist comes from")
     as_seen(img).save(HERE / "preview.png")
     if "--preview" in sys.argv:
         as_seen(render(item, now, "bw", raw)).save(HERE / "preview-bw.png")
@@ -367,6 +370,22 @@ def show(guid=None, command=0):
     print(f"On the wall: {item['artist']} — {item['title']} ({item['place'] or 'origin unknown'})")
     if URL:
         report(item, img, raw, now, command)
+
+
+def refuse(command, label, reason):
+    """A request handled without hanging anything: tell the page, or it would wait forever. The page keeps showing
+    what is on the wall."""
+    state = load_state()
+    state["command"] = max(command, state.get("command", 0))
+    STATE.write_text(json.dumps(state))
+    if not (URL and command):
+        return
+    current = state.get("current") or {"guid": FEED, "title": label, "artist": ""}
+    try:
+        requests.post(f"{URL}/api/pi", headers=AUTH, timeout=20, json={
+            **current, "command": command, "refused": label, "reason": reason}).raise_for_status()
+    except requests.RequestException as e:
+        print(f"Refusal not sent: {e}")
 
 
 def upload(item, kind, img):
@@ -426,10 +445,14 @@ def sync():
     if cmd.get("id", 0) <= state.get("command", 0):
         return
     print(f"Request: {cmd['action']}")
-    if cmd["action"] == "refresh":
-        show((state.get("seen") or [None])[-1], cmd["id"])
-    else:
-        show(cmd.get("guid") if cmd["action"] == "show" else None, cmd["id"])
+    try:
+        if cmd["action"] == "refresh":  # what is on the wall, not the last track tried (it may have been refused)
+            show((state.get("current") or {}).get("guid") or (state.get("seen") or [None])[-1], cmd["id"])
+        else:
+            show(cmd.get("guid") if cmd["action"] == "show" else None, cmd["id"])
+    except Exception as e:  # the page must hear back, or the control room would wait for ever
+        print(f"Request failed: {e}")
+        refuse(cmd["id"], cmd.get("guid", "").rstrip("/").split("/")[-1] or cmd["action"], f"the frame ran into an error: {e}")
 
 
 def seed(count):
@@ -441,6 +464,8 @@ def seed(count):
     for guid in guids:
         try:
             item = pick_item([], guid, load_state().get("feed", FEED))
+            if item is None:
+                continue
             raw = fetch_cover(item["cover"])
             now = datetime.now()
             first = render(item, now, "eink", raw)

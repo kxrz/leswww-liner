@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { login, send, setSource } from "../actions";
 import { Footer, Nav } from "../Chrome";
 import { NowPlaying } from "../NowPlaying";
+import { Tracks } from "../Tracks";
 import { isLoggedIn } from "@/lib/auth";
 import { getItems } from "@/lib/feed";
+import { STALE_MINUTES } from "@/lib/frame";
 import { ago, frameState } from "@/lib/health";
 import { listSources, SITE_FEED } from "@/lib/sources";
 import { listVisuals, readCommand, readHealth, readSettings, readStatus, slug } from "@/lib/store";
@@ -56,7 +58,17 @@ export default async function Control({ searchParams }: { searchParams: Promise<
   ]);
   const frame = frameState(health);
   const requested = Math.max(Number(params.sent) || 0, command?.id ?? 0);
-  const pending = requested > (status?.command ?? 0) ? requested : null;
+  const waiting = requested > (status?.command ?? 0);
+  // A request never picked up stops locking the page after a while (the frame may be asleep or offline)
+  const fresh = Date.now() - requested < STALE_MINUTES * 60_000;
+  const pending = waiting && fresh ? requested : null;
+  const asked = command?.action === "show" ? items.find((i) => i.guid === command.guid) : undefined;
+  const what = {
+    show: asked ? `${asked.artist} — ${asked.title}` : "The track you picked",
+    next: "The next track of the feed",
+    refresh: status ? `A redraw of ${status.artist} — ${status.title}` : "A redraw",
+  }[command?.action ?? "next"];
+  const away = { asleep: "the frame is asleep, it wakes at 7:00", silent: "the frame has gone silent, when it is back", online: undefined, unknown: undefined }[frame.state];
 
   return (
     <>
@@ -77,7 +89,15 @@ export default async function Control({ searchParams }: { searchParams: Promise<
             ].filter(Boolean).join(" · ")}
           </span>
         </div>
-        <NowPlaying status={status} pictures={status ? visuals.get(slug(status.guid)) : undefined} pending={pending} />
+        <NowPlaying
+          status={status}
+          pictures={status ? visuals.get(slug(status.guid)) : undefined}
+          pending={pending}
+          requested={what}
+          away={away}
+          done={!!status && Number(params.done) === status.command}
+          stale={waiting && !fresh}
+        />
 
         <form action={send} className="actions">
           <button name="action" value="next" className="btn" disabled={!!pending}>Next track <span aria-hidden="true">→</span></button>
@@ -85,28 +105,17 @@ export default async function Control({ searchParams }: { searchParams: Promise<
         </form>
 
         <h2 className="list-title">Pick a track</h2>
-        <ul className="tracks">
-          {items.map((item) => {
+        <Tracks
+          tracks={items.map((item) => {
             const pics = visuals.get(slug(item.guid)) ?? {};
-            return (
-              <li key={item.guid} className={item.guid === status?.guid ? "current" : undefined} aria-current={item.guid === status?.guid ? "true" : undefined}>
-                <form action={send}>
-                  <input type="hidden" name="guid" value={item.guid} />
-                  <button name="action" value="show" className="row" disabled={!!pending}>
-                    {item.cover ? <img src={item.cover} alt="" width={52} height={52} className="cover" /> : <span className="cover" />}
-                    <span>
-                      {item.guid === status?.guid && <span className="tag tag-verified now-tag">On the wall</span>}
-                      <span className="track-title">{item.title}</span>
-                      <span className="track-artist">{item.artist}{item.album && <em> · album</em>}</span>
-                    </span>
-                  </button>
-                </form>
-                {pics.eink && <a href={pics.eink.downloadUrl} download className="tag download">PNG<span className="sr-only">: download the e-ink picture of {item.title}</span></a>}
-                {pics.hd && <a href={pics.hd.downloadUrl} download className="tag download">4K<span className="sr-only">: download the 4K wallpaper of {item.title}</span></a>}
-              </li>
-            );
+            return {
+              guid: item.guid, title: item.title, artist: item.artist, album: item.album, cover: item.cover,
+              eink: pics.eink?.downloadUrl, hd: pics.hd?.downloadUrl,
+            };
           })}
-        </ul>
+          current={status?.guid}
+          locked={!!pending}
+        />
 
         <h2 className="list-title">Source</h2>
         <form action={setSource} className="source">

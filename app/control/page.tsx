@@ -8,7 +8,7 @@ import { isLoggedIn } from "@/lib/auth";
 import { getItems } from "@/lib/feed";
 import { STALE_MINUTES } from "@/lib/frame";
 import { ago, frameState } from "@/lib/health";
-import { getCatalog, SITE_FEED } from "@/lib/sources";
+import { ALL_FEED, getCatalog, SITE_FEED } from "@/lib/sources";
 import { listVisuals, readCommand, readHealth, readSettings, readStatus, slug } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -54,9 +54,11 @@ export default async function Control({ searchParams }: { searchParams: Promise<
 
   const settings = await readSettings();
   const feed = settings?.feed ?? SITE_FEED.url;
-  const [items, status, command, visuals, health, catalog] = await Promise.all([
-    getItems(feed), readStatus(), readCommand(), listVisuals(), readHealth(), getCatalog(),
+  // The list offers the whole catalogue, whatever feed the frame follows (that one, should the catalogue be unreadable)
+  const [catalogue, status, command, visuals, health, catalog] = await Promise.all([
+    getItems(ALL_FEED.url), readStatus(), readCommand(), listVisuals(), readHealth(), getCatalog(),
   ]);
+  const items = catalogue.length ? catalogue : await getItems(feed);
   const frame = frameState(health);
   const requested = Math.max(Number(params.sent) || 0, command?.id ?? 0);
   const waiting = requested > (status?.command ?? 0);

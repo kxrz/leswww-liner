@@ -1,7 +1,11 @@
 import { del, list, put } from "@vercel/blob";
 
 /** A request from the page. `id` grows with each request; the frame remembers the last one it handled. */
-export type Command = { id: number; action: "next" | "refresh" | "show"; guid?: string };
+export type Command = {
+  id: number; action: "next" | "refresh" | "show"; guid?: string;
+  /** For "show": the feed the track was picked from, when it is not the one the frame follows. */
+  from?: string;
+};
 
 /** What the frame reports after each redraw. */
 export type Status = {

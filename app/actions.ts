@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { COOKIE, fingerprint, isLoggedIn, same } from "@/lib/auth";
 import { fetchFeed } from "@/lib/fetch-feed";
-import { flatten, getCatalog, SITE_FEED } from "@/lib/sources";
+import { ALL_FEED, flatten, getCatalog, SITE_FEED } from "@/lib/sources";
 import { writeCommand, writeSettings, type Command } from "@/lib/store";
 
 export async function login(form: FormData) {
@@ -29,7 +29,10 @@ export async function send(form: FormData) {
   if (action !== "next" && action !== "refresh" && action !== "show") redirect("/control");
   const command: Command = { id: Date.now(), action };
   const guid = form.get("guid");
-  if (action === "show" && typeof guid === "string") command.guid = guid;
+  if (action === "show" && typeof guid === "string") {
+    command.guid = guid;
+    command.from = ALL_FEED.url; // the list is the whole catalogue, whatever feed the frame follows
+  }
   await writeCommand(command);
   redirect(`/control?sent=${command.id}`);
 }

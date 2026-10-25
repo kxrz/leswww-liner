@@ -338,17 +338,22 @@ def load_state():
     return state if isinstance(state, dict) else {"seen": state}  # older format: just the list
 
 
-def show(guid=None, command=0):
+def show(guid=None, command=0, source=None):
     """Draw a track and hang it. A track whose origin cannot be mapped is never shown: an automatic pick moves on to
-    the next one; a track asked for by name is refused and the frame keeps what it shows."""
+    the next one; a track asked for by name is refused and the frame keeps what it shows.
+
+    A track asked for by name is looked for in `source` (the feed it was picked from) then in the feed the frame
+    follows; an automatic pick always comes from the feed the frame follows."""
     state = load_state()
     seen = state.get("seen", [])
     now = datetime.now()
+    followed = state.get("feed", FEED)
+    feeds = list(dict.fromkeys(f for f in (source, followed) if f)) if guid else [followed]
     for _ in range(1 if guid else 10):
-        item = pick_item(seen, guid, state.get("feed", FEED))
+        item = next((dict(i, feed=f) for f in feeds if (i := pick_item(seen, guid, f))), None)
         if item is None:
             print(f"Refused, not in the feed: {guid}")
-            return refuse(command, guid.rstrip("/").split("/")[-1], "it is no longer in the feed the frame follows")
+            return refuse(command, guid.rstrip("/").split("/")[-1], "it is no longer on 320kbps.club")
         raw = fetch_cover(item["cover"])
         img = render(item, now, "eink", raw)
         if item["mapped"] or "--preview" in sys.argv:
@@ -405,7 +410,7 @@ def report(item, img, raw, now, command):
     try:
         visual = upload(item, "eink", img)
         current = {"guid": item["guid"], "title": item["title"], "artist": item["artist"],
-                   "place": item["place"], "visual": visual}
+                   "place": item["place"], "visual": visual, "feed": item.get("feed")}
         requests.post(f"{URL}/api/pi", headers=AUTH, timeout=20, json={**current, "command": command}).raise_for_status()
         state = load_state()
         state["current"] = current
@@ -451,9 +456,10 @@ def sync():
     print(f"Request: {cmd['action']}")
     try:
         if cmd["action"] == "refresh":  # what is on the wall, not the last track tried (it may have been refused)
-            show((state.get("current") or {}).get("guid") or (state.get("seen") or [None])[-1], cmd["id"])
+            current = state.get("current") or {}
+            show(current.get("guid") or (state.get("seen") or [None])[-1], cmd["id"], current.get("feed"))
         else:
-            show(cmd.get("guid") if cmd["action"] == "show" else None, cmd["id"])
+            show(cmd.get("guid") if cmd["action"] == "show" else None, cmd["id"], cmd.get("from"))
     except Exception as e:  # the page must hear back, or the control room would wait for ever
         print(f"Request failed: {e}")
         refuse(cmd["id"], cmd.get("guid", "").rstrip("/").split("/")[-1] or cmd["action"], f"the frame ran into an error: {e}")

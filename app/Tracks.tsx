@@ -58,7 +58,7 @@ export function Tracks({ tracks, current, locked }: Props) {
         <p id="search-count" className="label" aria-live="polite">
           {query.trim()
             ? `${found.length} of ${tracks.length} tracks match`
-            : `${tracks.length} tracks in the feed, newest first`}
+            : `${tracks.length} tracks on 320kbps.club, newest first`}
         </p>
       </div>
 
@@ -67,7 +67,7 @@ export function Tracks({ tracks, current, locked }: Props) {
       )}
 
       {found.length === 0 ? (
-        <p className="empty-list">No track matches “{query.trim()}” in this feed.</p>
+        <p className="empty-list">No track matches “{query.trim()}” on 320kbps.club.</p>
       ) : (
         <ul className="tracks">
           {found.slice(0, shown).map((t) => {

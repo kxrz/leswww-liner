@@ -30,15 +30,19 @@ const COMMAND = "liner/command.json";
 const STATUS = "liner/status.json";
 const VISUALS = "liner/pictures/";
 
-/** The store's public address, read from its token ("vercel_blob_rw_<store>_<secret>"). */
-const storeUrl = () => `https://${(process.env.BLOB_READ_WRITE_TOKEN ?? "").split("_")[3]}.public.blob.vercel-storage.com/`;
+/** The store's public address: from BLOB_STORE_ID ("store_<id>", set when the store is connected), or the token. */
+function storeUrl(): string | null {
+  const id = process.env.BLOB_STORE_ID?.replace(/^store_/, "") || process.env.BLOB_READ_WRITE_TOKEN?.split("_")[3];
+  return id ? `https://${id.toLowerCase()}.public.blob.vercel-storage.com/` : null;
+}
 
 async function read<T>(pathname: string): Promise<T | null> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return null; // no Blob store when running locally
+  const base = storeUrl();
+  if (!base) return null; // no Blob store when running locally
   try {
     // Straight from origin: a request must reach the frame now, not when the CDN copy expires.
     // (The SDK's `useCache: false` only applies to private stores, so the query string does the job here.)
-    const res = await fetch(`${storeUrl()}${pathname}?t=${Date.now()}`, { cache: "no-store" });
+    const res = await fetch(`${base}${pathname}?t=${Date.now()}`, { cache: "no-store" });
     return res.ok ? ((await res.json()) as T) : null;
   } catch {
     return null;
@@ -71,14 +75,22 @@ export type Hung = { slug: string; guid: string; title: string; artist: string; 
 const GALLERY = "liner/gallery.json";
 export const readGallery = async () => (await read<Hung[]>(GALLERY)) ?? [];
 
+/** The gallery before a change: an empty list only if there is none yet, never because the read failed. */
+async function galleryToChange(): Promise<Hung[]> {
+  const res = await fetch(`${storeUrl()}${GALLERY}?t=${Date.now()}`, { cache: "no-store" });
+  if (res.status === 404) return [];
+  if (!res.ok) throw new Error(`Gallery not read: ${res.status}`);
+  return (await res.json()) as Hung[];
+}
+
 export async function removeFromGallery(guid: string): Promise<void> {
   const key = slug(guid);
-  await write(GALLERY, (await readGallery()).filter((h) => h.slug !== key));
+  await write(GALLERY, (await galleryToChange()).filter((h) => h.slug !== key));
   await del(Object.values(KINDS).map((k) => `${VISUALS}${key}${k.suffix}`)).catch(() => undefined);
 }
 
 export async function addToGallery(entry: Hung): Promise<void> {
-  const gallery = (await readGallery()).filter((h) => h.slug !== entry.slug);
+  const gallery = (await galleryToChange()).filter((h) => h.slug !== entry.slug);
   await write(GALLERY, [entry, ...gallery].slice(0, 500));
 }
 

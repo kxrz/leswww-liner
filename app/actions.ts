@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { COOKIE, fingerprint, isLoggedIn, same } from "@/lib/auth";
 import { fetchFeed } from "@/lib/fetch-feed";
-import { listSources, SITE_FEED } from "@/lib/sources";
+import { flatten, getCatalog, SITE_FEED } from "@/lib/sources";
 import { writeCommand, writeSettings, type Command } from "@/lib/store";
 
 export async function login(form: FormData) {
@@ -34,7 +34,10 @@ export async function send(form: FormData) {
   redirect(`/control?sent=${command.id}`);
 }
 
-/** Follow any RSS feed with items in it; "reset" goes back to the whole of 320kbps.club. */
+/**
+ * Follow any RSS feed with items in it; "reset" goes back to the whole of 320kbps.club. With "hang", the frame also
+ * shows the feed's newest track now.
+ */
 export async function setSource(form: FormData) {
   if (!(await isLoggedIn())) redirect("/control");
   if (form.get("reset")) {
@@ -44,8 +47,14 @@ export async function setSource(form: FormData) {
   const feed = String(form.get("feed") ?? "").trim();
   const xml = await fetchFeed(feed);
   if (!/<item[\s>]/.test(xml)) redirect("/control?source=invalid");
-  const known = (await listSources()).flatMap((g) => g.sources).find((x) => x.url === feed)?.label;
+  const known = flatten(await getCatalog()).find((x) => x.url === feed)?.label;
   const title = xml.match(/<channel>[\s\S]*?<title>([^<]+)<\/title>/)?.[1]?.trim().slice(0, 120);
   await writeSettings({ feed, feedLabel: known ?? title ?? feed });
+  if (form.get("hang")) {
+    // The frame switches feeds before carrying out the request, so "next" is the new feed's newest track
+    const command: Command = { id: Date.now(), action: "next" };
+    await writeCommand(command);
+    redirect(`/control?source=saved&sent=${command.id}`);
+  }
   redirect("/control?source=saved");
 }

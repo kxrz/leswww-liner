@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { login, send, setSource } from "../actions";
 import { Footer, Nav } from "../Chrome";
 import { NowPlaying, type Coming } from "../NowPlaying";
+import { Sources } from "../Sources";
 import { Tracks } from "../Tracks";
 import { isLoggedIn } from "@/lib/auth";
 import { getItems } from "@/lib/feed";
 import { STALE_MINUTES } from "@/lib/frame";
 import { ago, frameState } from "@/lib/health";
-import { listSources, SITE_FEED } from "@/lib/sources";
+import { getCatalog, SITE_FEED } from "@/lib/sources";
 import { listVisuals, readCommand, readHealth, readSettings, readStatus, slug } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -53,8 +54,8 @@ export default async function Control({ searchParams }: { searchParams: Promise<
 
   const settings = await readSettings();
   const feed = settings?.feed ?? SITE_FEED.url;
-  const [items, status, command, visuals, health, sources] = await Promise.all([
-    getItems(feed), readStatus(), readCommand(), listVisuals(), readHealth(), listSources(),
+  const [items, status, command, visuals, health, catalog] = await Promise.all([
+    getItems(feed), readStatus(), readCommand(), listVisuals(), readHealth(), getCatalog(),
   ]);
   const frame = frameState(health);
   const requested = Math.max(Number(params.sent) || 0, command?.id ?? 0);
@@ -122,37 +123,38 @@ export default async function Control({ searchParams }: { searchParams: Promise<
         />
 
         <h2 className="list-title">Source</h2>
-        <form action={setSource} className="source">
-          <label htmlFor="feed" className="label">RSS feed the frame follows</label>
-          <input
-            id="feed"
-            type="url"
-            name="feed"
-            defaultValue={feed}
-            list="sources"
-            required
-            autoComplete="url"
-            placeholder="https://…/feed.xml"
-            aria-invalid={params.source === "invalid" ? true : undefined}
-            aria-describedby="feed-note"
-          />
-          <datalist id="sources">
-            {sources.flatMap((g) => g.sources).map((source) => (
-              <option key={source.url} value={source.url} label={source.label} />
-            ))}
-          </datalist>
-          <button type="submit" className="btn secondary">Follow</button>
-          {feed !== SITE_FEED.url && (
-            <button type="submit" name="reset" value="1" formNoValidate className="btn secondary">Reset</button>
-          )}
-        </form>
-        <p id="feed-note" className={params.source === "invalid" ? "form-error source-note" : "label source-note"} role={params.source ? "status" : undefined}>
-          {{
-            saved: "Saved. The frame picks it up within a minute; the next track comes from this feed.",
-            reset: "Back to the whole of 320kbps.club.",
-            invalid: "Error: that address is not an RSS feed with tracks in it.",
-          }[params.source] ?? `Following: ${settings?.feedLabel ?? SITE_FEED.label}. Curators and playlists are suggested as you type.`}
-        </p>
+        {params.source && (
+          <p id="feed-note" className={params.source === "invalid" ? "form-error source-note" : "notice ok"} role="status">
+            {{
+              saved: "Saved. The frame picks it up within a minute; the next tracks come from this feed.",
+              reset: "Back to the whole of 320kbps.club.",
+              invalid: "Error: that address is not an RSS feed with tracks in it.",
+            }[params.source]}
+          </p>
+        )}
+        <Sources catalog={catalog} current={feed} currentLabel={settings?.feedLabel ?? SITE_FEED.label} locked={!!pending} />
+
+        <details className="by-address" open={params.source === "invalid"}>
+          <summary className="label">Another RSS feed, by its address</summary>
+          <form action={setSource} className="source">
+            <label htmlFor="feed" className="label">RSS feed address</label>
+            <input
+              id="feed"
+              type="url"
+              name="feed"
+              defaultValue={feed}
+              required
+              autoComplete="url"
+              placeholder="https://…/feed.xml"
+              aria-invalid={params.source === "invalid" ? true : undefined}
+              aria-describedby={params.source ? "feed-note" : undefined}
+            />
+            <button type="submit" className="btn secondary">Follow</button>
+            {feed !== SITE_FEED.url && (
+              <button type="submit" name="reset" value="1" formNoValidate className="btn secondary">Reset</button>
+            )}
+          </form>
+        </details>
       </main>
       <Footer />
     </>

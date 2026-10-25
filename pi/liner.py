@@ -117,6 +117,10 @@ def pick_item(seen, guid=None, feed=FEED):
         info["kind"] = fmt.lower() if name else "album"
         info.update(album_page(item.findtext("link")))
     elif blocks and "320kbps.club" in item.findtext("link", ""):  # "Album - Single — 2021", "Label: …", "Country — …"
+        # Some tracks open with an editorial paragraph and close with a fun fact: prose, not facts to lay out
+        prose = lambda b: len(b) > 80 or (b.endswith((".", "!", "?", "…")) and b.count(" ") >= 5)  # not "Help!"
+        if prose(blocks[0]):
+            blocks = blocks[1:] or [""]
         head, _, year = blocks[0].rpartition(" — ")
         if not re.fullmatch(r"\d{4}", year):
             head, year = blocks[0], ""
@@ -128,7 +132,7 @@ def pick_item(seen, guid=None, feed=FEED):
         for b in blocks[1:]:  # which of these blocks are there, and in what order, varies from track to track
             if b.startswith("Label: "):
                 info["label"] = b.removeprefix("Label: ")
-            elif len(b) < 60:
+            elif not info["country"] and not prose(b) and len(b) < 60:
                 info["country"] = b.split(" — ")[0]
     image = item.find(MEDIA)
     if image is None:  # other feeds: an image enclosure, or an iTunes image

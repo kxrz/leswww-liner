@@ -1900,3 +1900,16 @@ form.actions .btn {
   margin: 2.5rem 0 4rem;
   max-width: 44rem;
 }
+
+.brand-pdfs {
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.brand-pdfs .label {
+  min-width: 7rem;
+}
+
+.slide-downloads {
+  flex-wrap: wrap;
+}

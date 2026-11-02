@@ -6,8 +6,8 @@ import { SITE } from "@/lib/site";
 
 const TITLE = "Liner in seven slides";
 const DESCRIPTION =
-  "The idea behind Liner, the LesWWW e-ink music frame, in seven slides: one track at a time, picked by a person, where the artist comes from, drawn for e-ink. 16:9 and LinkedIn, PNG and PDF.";
-const IMAGE = { url: "/brand/liner-slide-1-16x9.png", width: 1920, height: 1080, alt: brand.slides[0].alt };
+  "The idea behind Liner, the LesWWW e-ink music frame, in seven slides: one track at a time, picked by a person, where the artist comes from, drawn for e-ink. In English and French, 16:9 and LinkedIn, PNG and PDF.";
+const IMAGE = { url: "/brand/liner-slide-1-en-16x9.png", width: 1920, height: 1080, alt: brand.slides[0].en.alt };
 
 // A child page replaces the parent's whole openGraph and twitter objects: spell them out
 export const metadata: Metadata = {
@@ -31,7 +31,11 @@ const FORMATS = [
   { id: "16x9", label: "16:9", what: "1920 × 1080, to present" },
   { id: "linkedin", label: "LinkedIn", what: "1080 × 1350, a carousel" },
 ] as const;
-const file = (n: number, format: string) => `/brand/liner-slide-${n}-${format}.png`;
+const LANGUAGES = [
+  { id: "en", label: "In English", short: "" },
+  { id: "fr", label: "En français", short: "FR " },
+] as const;
+const file = (n: number, lang: string, format: string) => `/brand/liner-slide-${n}-${lang}-${format}.png`;
 
 export default function Brand() {
   return (
@@ -42,39 +46,45 @@ export default function Brand() {
           <section className="hero compact">
             <div className="hero-tags">
               <span className="tag tag-live">Brand</span>
-              <span className="label">{brand.slides.length} slides · 16:9 and LinkedIn · PNG and PDF</span>
+              <span className="label">{brand.slides.length} slides · English and French · 16:9 and LinkedIn</span>
             </div>
             <h1>
               Liner in seven slides, <mark>one idea each.</mark>
             </h1>
             <p className="lede">
               What the frame stands for, each idea shown with a real picture from the wall. Present them in 16:9, or post
-              the LinkedIn PDF as a document: LinkedIn turns it into a carousel.
+              the LinkedIn PDF as a document: LinkedIn turns it into a carousel. In English and in French.
             </p>
-            <div className="actions">
-              {FORMATS.map((f, i) => (
-                <a key={f.id} href={`/brand/liner-slides-${f.id}.pdf`} download className={i ? "btn secondary" : "btn"}>
-                  PDF {f.label} <span aria-hidden="true">↓</span>
-                  <span className="sr-only">: all seven slides, {f.what}</span>
-                </a>
-              ))}
-            </div>
+            {LANGUAGES.map((l) => (
+              <div key={l.id} className="actions brand-pdfs" lang={l.id}>
+                <span className="label">{l.label}</span>
+                {FORMATS.map((f, i) => (
+                  <a key={f.id} href={`/brand/liner-slides-${l.id}-${f.id}.pdf`} download className={i ? "btn secondary" : "btn"}>
+                    PDF {f.label} <span aria-hidden="true">↓</span>
+                    <span className="sr-only">: {l.id === "fr" ? "les sept slides" : "all seven slides"}, {f.what}</span>
+                  </a>
+                ))}
+              </div>
+            ))}
           </section>
 
           <ol className="slides">
-            {brand.slides.map((s, i) => (
-              <li key={s.title}>
-                <img src={file(i + 1, "16x9")} alt={`Slide ${i + 1}: ${s.title} ${s.alt}.`} width={1920} height={1080} loading="lazy" />
+            {brand.slides.map(({ en, fr }, i) => (
+              <li key={en.title}>
+                <img src={file(i + 1, "en", "16x9")} alt={`Slide ${i + 1}: ${en.title} ${en.alt}.`} width={1920} height={1080} loading="lazy" />
                 <div className="slide-text">
-                  <span className="label">{i + 1} / {brand.slides.length} · {s.kicker}</span>
-                  <h2>{s.title}</h2>
-                  <p>{s.text}</p>
+                  <span className="label">{i + 1} / {brand.slides.length} · {en.kicker}</span>
+                  <h2>{en.title}</h2>
+                  <p>{en.text}</p>
+                  <p className="label" lang="fr">FR · {fr.title}</p>
                   <p className="slide-downloads">
-                    {FORMATS.map((f) => (
-                      <a key={f.id} href={file(i + 1, f.id)} download className="tag download">
-                        {f.label}<span className="sr-only">: download slide {i + 1}, {f.what}</span>
-                      </a>
-                    ))}
+                    {LANGUAGES.flatMap((l) =>
+                      FORMATS.map((f) => (
+                        <a key={l.id + f.id} href={file(i + 1, l.id, f.id)} download className="tag download">
+                          {l.short}{f.label}<span className="sr-only">: download slide {i + 1}, {l.id === "fr" ? "in French, " : ""}{f.what}</span>
+                        </a>
+                      )),
+                    )}
                   </p>
                 </div>
               </li>

@@ -1,55 +1,112 @@
 {
   "slides": [
     {
-      "kicker": "Liner · a LesWWW project",
-      "title": "One track on your wall, like a work in a museum.",
-      "text": "An e-ink frame that hangs a single track from 320kbps.club: its cover and liner notes on a museum label, over a map of where the artist comes from.",
       "picture": "public/samples/bangalter.png",
-      "alt": "Liner showing Thomas Bangalter, over a map of Paris, France"
+      "en": {
+        "kicker": "Liner · a LesWWW project",
+        "title": "One track on your wall, like a work in a museum.",
+        "text": "An e-ink frame that hangs a single track from 320kbps.club: its cover and liner notes on a museum label, over a map of where the artist comes from.",
+        "alt": "Liner showing Thomas Bangalter, over a map of Paris, France"
+      },
+      "fr": {
+        "kicker": "Liner · un projet LesWWW",
+        "title": "Un morceau au mur, comme une œuvre au musée.",
+        "text": "Un cadre e-ink qui accroche un seul morceau de 320kbps.club : sa pochette et ses notes sur un cartel, sur la carte du pays d’où vient l’artiste.",
+        "alt": "Liner affiche Thomas Bangalter, sur la carte de la France, Paris entouré"
+      }
     },
     {
-      "kicker": "One at a time",
-      "title": "One track, then nothing else.",
-      "text": "A new track every morning and evening. No feed to scroll, no autoplay: something to look at for a whole day, and to go and listen to.",
       "picture": "public/samples/balthazar.png",
-      "alt": "Liner showing Balthazar, over a map of Belgium, Kortrijk circled"
+      "en": {
+        "kicker": "One at a time",
+        "title": "One track, then nothing else.",
+        "text": "A new track every morning and evening. No feed to scroll, no autoplay: something to look at for a whole day, and to go and listen to.",
+        "alt": "Liner showing Balthazar, over a map of Belgium, Kortrijk circled"
+      },
+      "fr": {
+        "kicker": "Un à la fois",
+        "title": "Un morceau, et rien d’autre.",
+        "text": "Un nouveau morceau chaque matin et chaque soir. Pas de fil à faire défiler, pas de lecture automatique : de quoi regarder toute une journée, et donner envie d’écouter.",
+        "alt": "Liner affiche Balthazar, sur la carte de la Belgique, Courtrai entouré"
+      }
     },
     {
-      "kicker": "Hand-picked",
-      "title": "Picked by a person, never an algorithm.",
-      "text": "Every track comes from 320kbps.club, where each one is chosen by hand. Follow the whole site, the track of the day, a curator or a playlist.",
       "picture": "public/samples/agnes-obel.png",
-      "alt": "Liner showing Agnes Obel, over a map of Denmark, Gentofte circled"
+      "en": {
+        "kicker": "Hand-picked",
+        "title": "Picked by a person, never an algorithm.",
+        "text": "Every track comes from 320kbps.club, where each one is chosen by hand. Follow the whole site, the track of the day, a curator or a playlist.",
+        "alt": "Liner showing Agnes Obel, over a map of Denmark, Gentofte circled"
+      },
+      "fr": {
+        "kicker": "Choisi à la main",
+        "title": "Choisi par quelqu’un, pas par un algorithme.",
+        "text": "Tout vient de 320kbps.club, où chaque morceau est choisi à la main. Le site entier, le morceau du jour, un curateur ou une playlist : au choix.",
+        "alt": "Liner affiche Agnes Obel, sur la carte du Danemark, Gentofte entouré"
+      }
     },
     {
-      "kicker": "Real places",
-      "title": "Where the artist comes from.",
-      "text": "Where they were born or formed, not where they live now: Magugu is from Nigeria, even if based in the UK. No known origin, no picture.",
       "picture": "public/samples/magugu.png",
-      "alt": "Liner showing Magugu & Le Motel, over a map of Nigeria",
-      "real": true
+      "real": true,
+      "en": {
+        "kicker": "Real places",
+        "title": "Where the artist comes from.",
+        "text": "Where they were born or formed, not where they live now: Magugu is from Nigeria, even if based in the UK. No known origin, no picture.",
+        "alt": "Liner showing Magugu & Le Motel, over a map of Nigeria"
+      },
+      "fr": {
+        "kicker": "Lieux réels",
+        "title": "D’où vient l’artiste.",
+        "text": "Là où il est né ou s’est formé, pas là où il vit : Magugu vient du Nigeria, même installé au Royaume-Uni. Origine inconnue, pas d’image.",
+        "alt": "Liner affiche Magugu & Le Motel, sur la carte du Nigeria"
+      }
     },
     {
-      "kicker": "Made for the ink",
-      "title": "Drawn for six inks.",
-      "text": "Black, white, yellow, red, blue, green. Text without smoothing, a map that snaps to the pixel; only the cover is dithered.",
       "picture": "public/samples/the-verve.png",
-      "alt": "Liner showing The Verve, over a map of the United Kingdom, Wigan circled"
+      "en": {
+        "kicker": "Made for the ink",
+        "title": "Drawn for six inks.",
+        "text": "Black, white, yellow, red, blue, green. Text without smoothing, a map that snaps to the pixel; only the cover is dithered.",
+        "alt": "Liner showing The Verve, over a map of the United Kingdom, Wigan circled"
+      },
+      "fr": {
+        "kicker": "Pensé pour l’encre",
+        "title": "Dessiné pour six encres.",
+        "text": "Noir, blanc, jaune, rouge, bleu, vert. Du texte sans lissage, une carte calée au pixel ; seule la pochette est tramée.",
+        "alt": "Liner affiche The Verve, sur la carte du Royaume-Uni, Wigan entouré"
+      }
     },
     {
-      "kicker": "Yours to keep",
-      "title": "Every picture, free to keep.",
-      "text": "Each track the frame hangs also becomes a 4K wallpaper and a black and white picture, free to download from the gallery.",
       "picture": "public/samples/bangalter-bw.png",
-      "alt": "Liner's black and white version of Thomas Bangalter, for a two-ink panel"
+      "en": {
+        "kicker": "Yours to keep",
+        "title": "Every picture, free to keep.",
+        "text": "Each track the frame hangs also becomes a 4K wallpaper and a black and white picture, free to download from the gallery.",
+        "alt": "Liner's black and white version of Thomas Bangalter, for a two-ink panel"
+      },
+      "fr": {
+        "kicker": "À garder",
+        "title": "Chaque image, gratuite.",
+        "text": "Chaque morceau accroché devient aussi un fond d’écran 4K et une image en noir et blanc, à télécharger dans la galerie.",
+        "alt": "La version noir et blanc de Thomas Bangalter par Liner, pour un écran à deux encres"
+      }
     },
     {
-      "kicker": "Open source",
-      "title": "Small, open, yours to build.",
-      "text": "A Raspberry Pi Zero, a Spectra 6 panel, any frame with a mat. About €100 of parts, an afternoon, the MIT License.",
       "picture": "docs/gallery/the-bamboos-hard-up.png",
-      "alt": "Liner showing The Bamboos, over a map of Australia, Melbourne circled",
-      "cta": "Build yours → github.com/kxrz/leswww-liner"
+      "en": {
+        "kicker": "Open source",
+        "title": "Small, open, yours to build.",
+        "text": "A Raspberry Pi Zero, a Spectra 6 panel, any frame with a mat. About €100 of parts, an afternoon, the MIT License.",
+        "alt": "Liner showing The Bamboos, over a map of Australia, Melbourne circled",
+        "cta": "Build yours → github.com/kxrz/leswww-liner"
+      },
+      "fr": {
+        "kicker": "Open source",
+        "title": "Petit, ouvert, à faire soi‑même.",
+        "text": "Un Raspberry Pi Zero, un écran Spectra 6, un cadre avec passe-partout. Environ 100 € de pièces, un après-midi, licence MIT.",
+        "alt": "Liner affiche The Bamboos, sur la carte de l’Australie, Melbourne entouré",
+        "cta": "Construire le vôtre → github.com/kxrz/leswww-liner"
+      }
     }
   ]
 }

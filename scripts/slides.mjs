@@ -2,9 +2,9 @@
  * Liner in seven slides, for the /brand page: `node scripts/slides.mjs` writes public/brand.
  *
  * One idea per slide, each shown with a real picture from the frame in its frame mockup. The words live in
- * lib/brand.json, read by the page too. Two formats: 16:9 (1920 × 1080) to present, and LinkedIn (1080 × 1350, the
- * carousel portrait). One PNG per slide, and one PDF per format: LinkedIn shows a PDF posted as a document as a
- * carousel.
+ * lib/brand.json, in English and French, read by the page too. Two formats: 16:9 (1920 × 1080) to present, and
+ * LinkedIn (1080 × 1350, the carousel portrait). One PNG per slide, and one PDF per language and format: LinkedIn
+ * shows a PDF posted as a document as a carousel.
  *
  * Fonts: Big Shoulders and Public Sans from scripts/fonts (OFL), IBM Plex Mono from pi/fonts.
  */
@@ -117,7 +117,7 @@ function slide(size, s, n, total, picture) {
     tag,
     h(
       "div",
-      { style: { display: "flex", fontFamily: "Big Shoulders", fontWeight: 800, fontSize: unit * (portrait ? 0.078 : 0.098), lineHeight: 1, textTransform: "uppercase", marginTop: unit * 0.03, color: fg } },
+      { style: { display: "flex", fontFamily: "Big Shoulders", fontWeight: 800, fontSize: unit * (portrait ? 0.072 : 0.098), lineHeight: 1, textTransform: "uppercase", marginTop: unit * 0.03, color: fg } },
       s.title,
     ),
     h("div", { style: { display: "flex", fontSize: unit * (portrait ? 0.028 : 0.029), lineHeight: 1.4, marginTop: unit * (portrait ? 0.022 : 0.028), color: soft } }, s.text),
@@ -125,7 +125,7 @@ function slide(size, s, n, total, picture) {
       ? mono(s.cta, unit * 0.021, C.ink, { background: C.accent, padding: `${unit * 0.01}px ${unit * 0.016}px`, marginTop: unit * 0.035 })
       : null,
   );
-  const picture_ = frame(Math.round(size.width * (portrait ? 0.74 : 0.47)), picture);
+  const picture_ = frame(Math.round(size.width * (portrait ? 0.7 : 0.47)), picture);
 
   return h(
     "div",
@@ -215,6 +215,7 @@ function pdf(pngs, width, height) {
 }
 
 const { slides } = JSON.parse(await readFile(join(ROOT, "lib/brand.json"), "utf8"));
+const LOCALES = ["en", "fr"];
 const fonts = [
   { name: "Big Shoulders", data: await readFile(join(ROOT, "scripts/fonts/BigShoulders-800.woff")), weight: 800, style: "normal" },
   { name: "Public Sans", data: await readFile(join(ROOT, "scripts/fonts/PublicSans-600.woff")), weight: 600, style: "normal" },
@@ -223,13 +224,16 @@ const fonts = [
 const pictures = await Promise.all(slides.map(async (s) => dataUri("image/png", await readFile(join(ROOT, s.picture)))));
 
 await mkdir(OUT, { recursive: true });
-for (const [format, size] of Object.entries(FORMATS)) {
-  const pngs = [];
-  for (const [i, s] of slides.entries()) {
-    const png = Buffer.from(await new ImageResponse(slide(size, s, i + 1, slides.length, pictures[i]), { ...size, fonts }).arrayBuffer());
-    await writeFile(join(OUT, `liner-slide-${i + 1}-${format}.png`), png);
-    pngs.push(png);
+for (const locale of LOCALES) {
+  for (const [format, size] of Object.entries(FORMATS)) {
+    const pngs = [];
+    for (const [i, s] of slides.entries()) {
+      const words = { ...s[locale], real: s.real };
+      const png = Buffer.from(await new ImageResponse(slide(size, words, i + 1, slides.length, pictures[i]), { ...size, fonts }).arrayBuffer());
+      await writeFile(join(OUT, `liner-slide-${i + 1}-${locale}-${format}.png`), png);
+      pngs.push(png);
+    }
+    await writeFile(join(OUT, `liner-slides-${locale}-${format}.pdf`), pdf(pngs, size.width, size.height));
+    console.log(`public/brand: ${slides.length} slides and a PDF, ${locale}, ${format}`);
   }
-  await writeFile(join(OUT, `liner-slides-${format}.pdf`), pdf(pngs, size.width, size.height));
-  console.log(`public/brand: ${slides.length} slides and a PDF in ${format}`);
 }

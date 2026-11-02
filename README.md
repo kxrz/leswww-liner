@@ -179,7 +179,8 @@ On a phone, "Add to Home Screen" turns the page into a small app. Locally: `npm 
   any other RSS feed by its address), and offers the three downloads for each track.
 - `/gallery` lists what has hung on the wall: click a picture to hang it in the frame mockup, download the 4K
   wallpaper, or listen on 320kbps.club.
-- `/brand` holds Liner in seven slides, one idea each (16:9 and LinkedIn 1080 × 1350, PNG and PDF). The words are in
+- `/brand` holds Liner in seven slides, one idea each, in English and French (16:9 and LinkedIn 1080 × 1350, PNG
+  and PDF). The words are in
   `lib/brand.json`; `node scripts/slides.mjs` draws them into `public/brand`.
 - `/` is the public landing page: today's picture in a frame mockup, a before/after slider (HD vs e-ink), the black
   and white version, how it works, hardware, credits. It is rebuilt at most every ten minutes.

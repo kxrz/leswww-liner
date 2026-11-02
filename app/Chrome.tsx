@@ -51,6 +51,7 @@ export function Footer() {
           <p>
             <span className="footer-group">Project</span>
             <Link href="/gallery">Gallery</Link>
+            <Link href="/brand">Brand</Link>
             <Ext href={SITE.build}>Build guide</Ext>
             <Ext href={SITE.repo}>GitHub</Ext>
             <Ext href={`${SITE.repo}/blob/main/LICENSE`}>MIT License</Ext>

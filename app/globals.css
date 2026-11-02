@@ -1843,3 +1843,60 @@ form.actions .btn {
   height: 1.25rem;
   accent-color: var(--ink);
 }
+
+/* --- Brand: the slides --- */
+
+.slides {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 2.5rem;
+  margin-top: 1rem;
+}
+
+.slides li {
+  display: grid;
+  gap: 1.25rem;
+  align-items: center;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.slides img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+}
+
+@media (min-width: 52rem) {
+  .slides li {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 2rem;
+  }
+}
+
+.slide-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.slide-text h2 {
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+
+.slide-text p {
+  color: var(--ink-soft);
+}
+
+.slide-downloads {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.brand-note {
+  margin: 2.5rem 0 4rem;
+  max-width: 44rem;
+}

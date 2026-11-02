@@ -1,0 +1,55 @@
+{
+  "slides": [
+    {
+      "kicker": "Liner · a LesWWW project",
+      "title": "One track on your wall, like a work in a museum.",
+      "text": "An e-ink frame that hangs a single track from 320kbps.club: its cover and liner notes on a museum label, over a map of where the artist comes from.",
+      "picture": "public/samples/bangalter.png",
+      "alt": "Liner showing Thomas Bangalter, over a map of Paris, France"
+    },
+    {
+      "kicker": "One at a time",
+      "title": "One track, then nothing else.",
+      "text": "A new track every morning and evening. No feed to scroll, no autoplay: something to look at for a whole day, and to go and listen to.",
+      "picture": "public/samples/balthazar.png",
+      "alt": "Liner showing Balthazar, over a map of Belgium, Kortrijk circled"
+    },
+    {
+      "kicker": "Hand-picked",
+      "title": "Picked by a person, never an algorithm.",
+      "text": "Every track comes from 320kbps.club, where each one is chosen by hand. Follow the whole site, the track of the day, a curator or a playlist.",
+      "picture": "public/samples/agnes-obel.png",
+      "alt": "Liner showing Agnes Obel, over a map of Denmark, Gentofte circled"
+    },
+    {
+      "kicker": "Real places",
+      "title": "Where the artist comes from.",
+      "text": "Where they were born or formed, not where they live now: Magugu is from Nigeria, even if based in the UK. No known origin, no picture.",
+      "picture": "public/samples/magugu.png",
+      "alt": "Liner showing Magugu & Le Motel, over a map of Nigeria",
+      "real": true
+    },
+    {
+      "kicker": "Made for the ink",
+      "title": "Drawn for six inks.",
+      "text": "Black, white, yellow, red, blue, green. Text without smoothing, a map that snaps to the pixel; only the cover is dithered.",
+      "picture": "public/samples/the-verve.png",
+      "alt": "Liner showing The Verve, over a map of the United Kingdom, Wigan circled"
+    },
+    {
+      "kicker": "Yours to keep",
+      "title": "Every picture, free to keep.",
+      "text": "Each track the frame hangs also becomes a 4K wallpaper and a black and white picture, free to download from the gallery.",
+      "picture": "public/samples/bangalter-bw.png",
+      "alt": "Liner's black and white version of Thomas Bangalter, for a two-ink panel"
+    },
+    {
+      "kicker": "Open source",
+      "title": "Small, open, yours to build.",
+      "text": "A Raspberry Pi Zero, a Spectra 6 panel, any frame with a mat. About €100 of parts, an afternoon, the MIT License.",
+      "picture": "docs/gallery/the-bamboos-hard-up.png",
+      "alt": "Liner showing The Bamboos, over a map of Australia, Melbourne circled",
+      "cta": "Build yours → github.com/kxrz/leswww-liner"
+    }
+  ]
+}

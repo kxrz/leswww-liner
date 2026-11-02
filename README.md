@@ -94,6 +94,7 @@ targets the 2025 Spectra 6 (no orange ink).
 ```
 app/                  web (Next.js), in the LesWWW charter
   page.tsx            public landing page
+  brand/              Liner in seven slides (lib/brand.json, drawn by scripts/slides.mjs)
   control/            control room, behind a password
   NowPlaying.tsx      request tracking, flash when the frame is done
   Frame.tsx           the frame mockup (wood, mat, visible area)
@@ -178,6 +179,8 @@ On a phone, "Add to Home Screen" turns the page into a small app. Locally: `npm 
   any other RSS feed by its address), and offers the three downloads for each track.
 - `/gallery` lists what has hung on the wall: click a picture to hang it in the frame mockup, download the 4K
   wallpaper, or listen on 320kbps.club.
+- `/brand` holds Liner in seven slides, one idea each (16:9 and LinkedIn 1080 × 1350, PNG and PDF). The words are in
+  `lib/brand.json`; `node scripts/slides.mjs` draws them into `public/brand`.
 - `/` is the public landing page: today's picture in a frame mockup, a before/after slider (HD vs e-ink), the black
   and white version, how it works, hardware, credits. It is rebuilt at most every ten minutes.
 - SEO and GEO: canonical URL, Open Graph image, a JSON-LD graph (page, creative work, source code, Florent

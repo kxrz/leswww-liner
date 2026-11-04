@@ -47,7 +47,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    // The motion gate (lib/motion.ts) adds classes to <html> before React hydrates
+    <html lang="en-GB" className={`${display.variable} ${sans.variable} ${mono.variable}`} suppressHydrationWarning>
       <body>
         {children}
         <Analytics />

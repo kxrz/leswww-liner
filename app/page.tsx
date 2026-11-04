@@ -3,9 +3,10 @@ import { Footer, Nav } from "./Chrome";
 import { Compare } from "./Compare";
 import { Ext } from "./Ext";
 import { Frame } from "./Frame";
-import { LandingMotion } from "./LandingMotion";
+import { Motion } from "./Motion";
 import { Marquee } from "./Marquee";
 import { landingJsonLd } from "@/lib/jsonld";
+import { MOTION_GATE } from "@/lib/motion";
 import { PARTS, SITE } from "@/lib/site";
 import { listVisuals, readStatus, slug } from "@/lib/store";
 
@@ -43,11 +44,6 @@ const FAQ = [
   },
 ];
 
-const MOTION_GATE = `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  document.documentElement.classList.add("motion");
-  setTimeout(() => document.documentElement.classList.add("motion-ready"), 2500);
-}`;
-
 export default async function Home() {
   const [status, visuals] = await Promise.all([readStatus(), listVisuals()]);
   const current = status ? visuals.get(slug(status.guid)) : undefined;
@@ -71,7 +67,7 @@ export default async function Home() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(landingJsonLd()) }} />
-      {/* Before the hero paints: with motion allowed, hold the title until LandingMotion has split it (2.5 s at most) */}
+      {/* Before the hero paints (lib/motion.ts) */}
       <script dangerouslySetInnerHTML={{ __html: MOTION_GATE }} />
       <Nav current="home" />
       <main id="main" tabIndex={-1}>
@@ -101,9 +97,9 @@ export default async function Home() {
                 <Link href="/gallery" className="btn secondary">Get the wallpapers</Link>
               </div>
             </div>
-            <figure className="hero-frame" data-redraw-frame>
+            <figure className="hero-frame" data-redraw-frame data-tilt>
               <Frame src={current?.eink?.url ?? SAMPLES[1]} alt={nowAlt} priority />
-              {/* Shown by LandingMotion: replays the e-ink redraw */}
+              {/* Shown by Motion: replays the e-ink redraw */}
               <button type="button" className="tag redraw" data-redraw hidden>
                 Redraw <span aria-hidden="true">↻</span>
                 <span className="sr-only"> the picture, the way the e-ink panel does</span>
@@ -252,7 +248,7 @@ export default async function Home() {
         </div>
       </main>
       <Footer />
-      <LandingMotion />
+      <Motion />
     </>
   );
 }

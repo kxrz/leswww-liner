@@ -182,10 +182,11 @@ On a phone, "Add to Home Screen" turns the page into a small app. Locally: `npm 
 - `/brand` holds Liner in seven slides, one idea each, in English and French (16:9 and LinkedIn 1080 × 1350, PNG
   and PDF). The words are in
   `lib/brand.json`; `node scripts/slides.mjs` draws them into `public/brand`.
-- The landing page moves with [GSAP](https://gsap.com) (`app/LandingMotion.tsx`, after bertiaux.fr): the title rises
-  letter by letter, the frame redraws like a real e-ink panel (a Redraw button replays it), section titles rise
-  word by word, the strip of pictures follows the scroll, the comparison sweeps once; the frame tilts and the buttons
-  pull towards a mouse. Nothing moves with reduced motion, and nothing is hidden without JavaScript beyond 2.5 s.
+- The public pages move with [GSAP](https://gsap.com) (`app/Motion.tsx`, after bertiaux.fr): titles rise letter by
+  letter or word by word, frames redraw like a real e-ink panel (on arrival, from a Redraw button, and when another
+  picture is hung in the gallery), pictures draw themselves band by band as they arrive, the strip of pictures
+  follows the scroll, the comparison sweeps once; frames and slides tilt and the buttons pull towards a mouse.
+  Nothing moves with reduced motion, and nothing is hidden without JavaScript beyond 2.5 s (`lib/motion.ts`).
 - `/` is the public landing page: today's picture in a frame mockup, a before/after slider (HD vs e-ink), the black
   and white version, how it works, hardware, credits. It is rebuilt at most every ten minutes.
 - SEO and GEO: canonical URL, Open Graph image, a JSON-LD graph (page, creative work, source code, Florent

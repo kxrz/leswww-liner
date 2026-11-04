@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Footer, Nav } from "../Chrome";
 import { Ext } from "../Ext";
+import { Motion } from "../Motion";
 import { Viewer, type Download } from "./Viewer";
 import { galleryJsonLd } from "@/lib/jsonld";
+import { MOTION_GATE } from "@/lib/motion";
 import { SITE } from "@/lib/site";
 import { getItems } from "@/lib/feed";
 import { listVisuals, readGallery, slug } from "@/lib/store";
@@ -66,18 +68,19 @@ export default async function Gallery() {
           ).replace(/</g, "\\u003c"),
         }}
       />
+      <script dangerouslySetInnerHTML={{ __html: MOTION_GATE }} />
       <Nav current="gallery" />
       <main id="main" tabIndex={-1}>
         <div className="wrap">
           <section className="hero compact">
-            <div className="hero-tags">
+            <div className="hero-tags" data-hero-sub>
               <span className="tag tag-live">Gallery</span>
               <span className="label">A selection · {entries.length} tracks · free to download</span>
             </div>
-            <h1>
+            <h1 data-hero-title>
               Free 4K music wallpapers, <mark>straight from the wall.</mark>
             </h1>
-            <p className="lede">
+            <p className="lede" data-hero-sub>
               A selection of the tracks Liner has shown, in three versions: a 4K wallpaper, the colour e-ink picture
               and its black and white twin. Hundreds more are waiting on <Ext href={SITE.music}>320kbps.club</Ext>.
             </p>
@@ -115,6 +118,7 @@ export default async function Gallery() {
         </div>
       </main>
       <Footer />
+      <Motion />
     </>
   );
 }

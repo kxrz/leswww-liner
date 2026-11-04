@@ -56,7 +56,7 @@ export function Viewer({ entries }: { entries: Entry[] }) {
 
   return (
     <>
-      <section className="featured" id="frame" aria-labelledby="featured-title">
+      <section className="featured" id="frame" aria-labelledby="featured-title" data-redraw-frame data-tilt>
         <Frame src={shown.eink} alt={alt(shown)} priority />
         <div className="featured-text">
           <span className="label">In the frame</span>

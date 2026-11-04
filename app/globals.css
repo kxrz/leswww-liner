@@ -1914,7 +1914,7 @@ form.actions .btn {
   flex-wrap: wrap;
 }
 
-/* --- Landing in motion (LandingMotion.tsx) --- */
+/* --- Public pages in motion (Motion.tsx) --- */
 
 .hero-frame {
   position: relative;

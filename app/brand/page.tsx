@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Footer, Nav } from "../Chrome";
 import { Ext } from "../Ext";
+import { Motion } from "../Motion";
 import brand from "@/lib/brand.json";
+import { MOTION_GATE } from "@/lib/motion";
 import { SITE } from "@/lib/site";
 
 const TITLE = "Liner in seven slides";
@@ -40,23 +42,24 @@ const file = (n: number, lang: string, format: string) => `/brand/liner-slide-${
 export default function Brand() {
   return (
     <>
+      <script dangerouslySetInnerHTML={{ __html: MOTION_GATE }} />
       <Nav />
       <main id="main" tabIndex={-1}>
         <div className="wrap">
           <section className="hero compact">
-            <div className="hero-tags">
+            <div className="hero-tags" data-hero-sub>
               <span className="tag tag-live">Brand</span>
               <span className="label">{brand.slides.length} slides · English and French · 16:9 and LinkedIn</span>
             </div>
-            <h1>
+            <h1 data-hero-title>
               Liner in seven slides, <mark>one idea each.</mark>
             </h1>
-            <p className="lede">
+            <p className="lede" data-hero-sub>
               What the frame stands for, each idea shown with a real picture from the wall. Present them in 16:9, or post
               the LinkedIn PDF as a document: LinkedIn turns it into a carousel. In English and in French.
             </p>
             {LANGUAGES.map((l) => (
-              <div key={l.id} className="actions brand-pdfs" lang={l.id}>
+              <div key={l.id} className="actions brand-pdfs" lang={l.id} data-hero-sub>
                 <span className="label">{l.label}</span>
                 {FORMATS.map((f, i) => (
                   <a key={f.id} href={`/brand/liner-slides-${l.id}-${f.id}.pdf`} download className={i ? "btn secondary" : "btn"}>
@@ -71,7 +74,7 @@ export default function Brand() {
           <ol className="slides">
             {brand.slides.map(({ en, fr }, i) => (
               <li key={en.title}>
-                <img src={file(i + 1, "en", "16x9")} alt={`Slide ${i + 1}: ${en.title} ${en.alt}.`} width={1920} height={1080} loading="lazy" />
+                <img src={file(i + 1, "en", "16x9")} alt={`Slide ${i + 1}: ${en.title} ${en.alt}.`} width={1920} height={1080} loading="lazy" data-tilt />
                 <div className="slide-text">
                   <span className="label">{i + 1} / {brand.slides.length} · {en.kicker}</span>
                   <h2>{en.title}</h2>
@@ -99,6 +102,7 @@ export default function Brand() {
         </div>
       </main>
       <Footer />
+      <Motion />
     </>
   );
 }

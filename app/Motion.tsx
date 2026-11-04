@@ -3,13 +3,15 @@
 import { useEffect } from "react";
 
 /**
- * The landing page in motion (GSAP, after bertiaux.fr): the title rises letter by letter, the frame redraws like a
- * real e-ink panel, section titles rise word by word, the strip follows the scroll, the comparison sweeps once.
+ * The public pages in motion (GSAP, after bertiaux.fr), mounted on the landing, the gallery and the brand page. Each
+ * effect looks for what it animates and does nothing on a page without it: the title rises letter by letter, frames
+ * redraw like a real e-ink panel, pictures draw themselves band by band as they arrive, section titles rise word by
+ * word, the strip follows the scroll, the comparison sweeps once.
  *
- * Everything starts from the page as served: nothing is hidden before the script runs, so without JavaScript or with
- * reduced motion the page is simply still. Pointer effects (tilt, magnetic buttons) only with a mouse.
+ * Nothing moves with reduced motion. Pointer effects (tilt, magnetic buttons) only with a mouse. Only the hero is held
+ * back before the script runs, by MOTION_GATE (lib/motion.ts), and for 2.5 s at most.
  */
-export function LandingMotion() {
+export function Motion() {
   useEffect(() => {
     let cleanup = () => {};
     let cancelled = false;
@@ -29,7 +31,15 @@ export function LandingMotion() {
       // Each effect hands back what undoes its listeners and added elements; GSAP reverts the tweens itself
       const all = (...undo: (Undo | void)[]) => () => undo.forEach((u) => u?.());
       mm.add("(prefers-reduced-motion: no-preference)", () =>
-        all(intro(gsap, SplitText), redraws(gsap), reveals(gsap, SplitText), cascades(gsap), strip(gsap, ScrollTrigger), compare(gsap, ScrollTrigger)),
+        all(
+          intro(gsap, SplitText),
+          redraws(gsap),
+          reveals(gsap, SplitText),
+          cascades(gsap),
+          bands(gsap, ScrollTrigger),
+          strip(gsap, ScrollTrigger),
+          compare(gsap, ScrollTrigger),
+        ),
       );
       mm.add("(prefers-reduced-motion: no-preference) and (pointer: fine)", () => all(tilt(gsap), magnetic(gsap)));
       cleanup = () => mm.revert();
@@ -74,22 +84,22 @@ function intro(gsap: GSAP, SplitText: Split): Undo | void {
     .from(split.chars, { yPercent: 110, rotate: 8, duration: 1.1, stagger: 0.018 })
     .to(marks, { backgroundSize: "100% 100%", duration: 0.7, ease: "expo.inOut", stagger: 0.12 }, "-=0.7")
     .from("[data-hero-sub]", { y: 24, autoAlpha: 0, duration: 0.9, stagger: 0.08 }, "<");
-  // Everything now starts from its first frame: the page can show the hero (see the script in page.tsx)
+  // Everything now starts from its first frame: the page can show the hero (MOTION_GATE)
   document.documentElement.classList.add("motion-ready");
   return () => document.documentElement.classList.add("motion-ready");
 }
 
 /**
  * The frame redraws the way a colour e-ink panel does: a black flash, the six inks one after the other, then the
- * picture settles band by band. Once on arrival, and again from the "Redraw" button.
+ * picture settles band by band. Once on arrival, again from the "Redraw" button, and whenever another picture is hung
+ * in it (the gallery).
  */
 function redraws(gsap: GSAP): Undo {
   const undo: Undo[] = [];
   const INKS = ["#000000", "#ffffff", "#e8d24a", "#c23b2e", "#2a2f8f", "#2f7a3b", "#ffffff"];
   $$("[data-redraw-frame]").forEach((figure) => {
     const screen = figure.querySelector<HTMLElement>(".screen");
-    const picture = screen?.querySelector<HTMLElement>(".picture");
-    if (!screen || !picture) return;
+    if (!screen?.querySelector(".picture")) return;
     const flash = document.createElement("div");
     flash.className = "ink-flash";
     flash.setAttribute("aria-hidden", "true");
@@ -97,6 +107,7 @@ function redraws(gsap: GSAP): Undo {
     undo.push(() => flash.remove());
 
     const play = () => {
+      const picture = screen.querySelector<HTMLElement>(".picture");
       const tl = gsap.timeline();
       tl.set(flash, { autoAlpha: 1, backgroundColor: INKS[0] });
       INKS.slice(1).forEach((ink) => tl.set(flash, { backgroundColor: ink }, "+=0.11"));
@@ -105,6 +116,13 @@ function redraws(gsap: GSAP): Undo {
       return tl;
     };
     play();
+
+    // A new picture in the frame is a new <img> (Frame keys it by its address): redraw for it
+    const watch = new MutationObserver((changes) => {
+      if (changes.some((c) => [...c.addedNodes].some((n) => n instanceof HTMLElement && n.classList.contains("picture")))) play();
+    });
+    watch.observe(screen, { childList: true });
+    undo.push(() => watch.disconnect());
 
     const button = figure.querySelector<HTMLButtonElement>("[data-redraw]");
     if (button) {
@@ -117,7 +135,7 @@ function redraws(gsap: GSAP): Undo {
 
 /** Section titles rise word by word as they come into view. */
 function reveals(gsap: GSAP, SplitText: Split) {
-  $$(".block h2").forEach((title) => {
+  $$(".block h2, .list-title, .slide-text h2").forEach((title) => {
     const split = SplitText.create(title, { type: "lines,words", mask: "lines" });
     gsap.from(split.words, {
       yPercent: 110,
@@ -164,6 +182,38 @@ function cascades(gsap: GSAP) {
       scrollTrigger: { trigger: label, start: "top 85%" },
     });
   });
+}
+
+/**
+ * Pictures draw themselves band by band as they arrive, the way the panel paints, and what goes with them follows:
+ * each brand slide and its words, the gallery's cards a few at a time.
+ */
+function bands(gsap: GSAP, ScrollTrigger: Trigger) {
+  const paint = { clipPath: "inset(0 0 0% 0)", duration: 0.8, ease: "steps(10)" };
+  const hidden = { clipPath: "inset(0 0 100% 0)" };
+
+  $$(".slides li").forEach((slide) => {
+    const picture = slide.querySelector("img");
+    const words = slide.querySelectorAll(".slide-text > *");
+    gsap
+      .timeline({ scrollTrigger: { trigger: slide, start: "top 80%" } })
+      .fromTo(picture, hidden, paint)
+      .from(words, { x: 32, autoAlpha: 0, duration: 0.8, ease: "expo.out", stagger: 0.07 }, "-=0.4");
+  });
+
+  const cards = $$(".gallery .card");
+  if (cards.length) {
+    gsap.set(cards, { y: 40, autoAlpha: 0 });
+    gsap.set(cards.map((c) => c.querySelector(".thumb img")), hidden);
+    ScrollTrigger.batch(cards, {
+      start: "top 90%",
+      once: true,
+      onEnter: (batch) => {
+        gsap.to(batch, { y: 0, autoAlpha: 1, duration: 0.8, ease: "expo.out", stagger: 0.08 });
+        gsap.to(batch.map((c) => c.querySelector(".thumb img")), { ...paint, stagger: 0.08, delay: 0.15 });
+      },
+    });
+  }
 }
 
 /** The strip of recent pictures speeds up and leans with the scroll, then settles back to its slow drift. */
@@ -217,32 +267,33 @@ function compare(gsap: GSAP, ScrollTrigger: Trigger): Undo | void {
   return () => undo.forEach((u) => u());
 }
 
-/** The hero frame leans towards the pointer, like a picture on a wall seen from the side. */
-function tilt(gsap: GSAP): Undo | void {
-  const figure = document.querySelector<HTMLElement>("[data-redraw-frame]");
-  const frame = figure?.querySelector<HTMLElement>(".frame");
-  if (!figure || !frame) return;
-  gsap.set(figure, { perspective: 900 });
-  const rx = gsap.quickTo(frame, "rotationX", { duration: 0.6, ease: "power3.out" });
-  const ry = gsap.quickTo(frame, "rotationY", { duration: 0.6, ease: "power3.out" });
-  const undo = [
-    on(figure, "pointermove", (e) => {
-      const b = figure.getBoundingClientRect();
-      ry(((e.clientX - b.left) / b.width - 0.5) * 10);
-      rx(((e.clientY - b.top) / b.height - 0.5) * -8);
-    }),
-    on(figure, "pointerleave", () => {
-      rx(0);
-      ry(0);
-    }),
-  ];
+/** Frames and slides lean towards the pointer, like a picture on a wall seen from the side. */
+function tilt(gsap: GSAP): Undo {
+  const undo: Undo[] = [];
+  $$("[data-tilt]").forEach((zone) => {
+    const target = zone.querySelector<HTMLElement>(".frame") ?? zone;
+    gsap.set(target, { transformPerspective: 900 });
+    const rx = gsap.quickTo(target, "rotationX", { duration: 0.6, ease: "power3.out" });
+    const ry = gsap.quickTo(target, "rotationY", { duration: 0.6, ease: "power3.out" });
+    undo.push(
+      on(zone, "pointermove", (e) => {
+        const b = zone.getBoundingClientRect();
+        ry(((e.clientX - b.left) / b.width - 0.5) * 10);
+        rx(((e.clientY - b.top) / b.height - 0.5) * -8);
+      }),
+      on(zone, "pointerleave", () => {
+        rx(0);
+        ry(0);
+      }),
+    );
+  });
   return () => undo.forEach((u) => u());
 }
 
 /** The main buttons lean towards the pointer, then spring back. */
 function magnetic(gsap: GSAP): Undo {
   const undo: Undo[] = [];
-  $$(".hero .btn, .cta .btn, #build .btn").forEach((button) => {
+  $$(".hero .btn, .cta .btn, #build .btn, .featured-text .btn").forEach((button) => {
     const x = gsap.quickTo(button, "x", { duration: 0.5, ease: "power3.out" });
     const y = gsap.quickTo(button, "y", { duration: 0.5, ease: "power3.out" });
     undo.push(

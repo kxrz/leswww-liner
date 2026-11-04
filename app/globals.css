@@ -1913,3 +1913,48 @@ form.actions .btn {
 .slide-downloads {
   flex-wrap: wrap;
 }
+
+/* --- Landing in motion (LandingMotion.tsx) --- */
+
+.hero-frame {
+  position: relative;
+}
+
+.hero-frame .frame {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* The e-ink refresh: the panel flashes through its inks before the picture settles */
+.ink-flash {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.redraw {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.redraw[hidden] {
+  display: none;
+}
+
+.redraw:hover,
+.redraw:focus-visible {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Held for a moment so the title does not show, vanish and rise again (the gate script in page.tsx) */
+.motion:not(.motion-ready) [data-hero-title],
+.motion:not(.motion-ready) [data-hero-sub] {
+  visibility: hidden;
+}

@@ -3,6 +3,7 @@ import { Footer, Nav } from "./Chrome";
 import { Compare } from "./Compare";
 import { Ext } from "./Ext";
 import { Frame } from "./Frame";
+import { LandingMotion } from "./LandingMotion";
 import { Marquee } from "./Marquee";
 import { landingJsonLd } from "@/lib/jsonld";
 import { PARTS, SITE } from "@/lib/site";
@@ -42,6 +43,11 @@ const FAQ = [
   },
 ];
 
+const MOTION_GATE = `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  document.documentElement.classList.add("motion");
+  setTimeout(() => document.documentElement.classList.add("motion-ready"), 2500);
+}`;
+
 export default async function Home() {
   const [status, visuals] = await Promise.all([readStatus(), listVisuals()]);
   const current = status ? visuals.get(slug(status.guid)) : undefined;
@@ -65,36 +71,43 @@ export default async function Home() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(landingJsonLd()) }} />
+      {/* Before the hero paints: with motion allowed, hold the title until LandingMotion has split it (2.5 s at most) */}
+      <script dangerouslySetInnerHTML={{ __html: MOTION_GATE }} />
       <Nav current="home" />
       <main id="main" tabIndex={-1}>
         <div className="wrap">
           {/* AIDA: the picture and the headline catch the eye, the lede explains, the list makes you want one, the buttons act */}
           <section className="hero hero-split">
             <div className="hero-copy">
-              <div className="hero-tags">
+              <div className="hero-tags" data-hero-sub>
                 <Ext href={SITE.studio} className="tag tag-live">A LesWWW project</Ext>
                 <span className="label">E-ink music frame · music from 320kbps.club</span>
               </div>
-              <h1>
+              <h1 data-hero-title>
                 Liner: one track on your wall, <mark>like a work in a museum.</mark>
               </h1>
-              <p className="lede">
+              <p className="lede" data-hero-sub>
                 An e-ink frame that hangs a single track from <Ext href={SITE.music}>320kbps.club</Ext>, twice a day: its
                 cover and liner notes on a museum label, over a map of where the artist comes from.
               </p>
-              <ul className="perks">
+              <ul className="perks" data-hero-sub>
                 <li>Picked by a curator, never an algorithm</li>
                 <li>Where the artist comes from, mapped</li>
                 <li>A free 4K wallpaper of every track</li>
                 <li>Open source: a Pi, a panel, an afternoon</li>
               </ul>
-              <div className="actions">
+              <div className="actions" data-hero-sub>
                 <Ext href={SITE.build} className="btn">Build your own <span aria-hidden="true">→</span></Ext>
                 <Link href="/gallery" className="btn secondary">Get the wallpapers</Link>
               </div>
             </div>
-            <figure className="hero-frame">
+            <figure className="hero-frame" data-redraw-frame>
               <Frame src={current?.eink?.url ?? SAMPLES[1]} alt={nowAlt} priority />
+              {/* Shown by LandingMotion: replays the e-ink redraw */}
+              <button type="button" className="tag redraw" data-redraw hidden>
+                Redraw <span aria-hidden="true">↻</span>
+                <span className="sr-only"> the picture, the way the e-ink panel does</span>
+              </button>
               {status && (
                 <figcaption className="label">
                   <span className="tag tag-verified">On the wall now</span> <strong>{status.artist}</strong> — {status.title}
@@ -239,6 +252,7 @@ export default async function Home() {
         </div>
       </main>
       <Footer />
+      <LandingMotion />
     </>
   );
 }
